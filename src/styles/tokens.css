@@ -1,0 +1,116 @@
+/* Design-tokens uit docs/05-design.md. 1:1 overgenomen uit het prototype
+   (prototype/standwerk-pos.html regels 13-42), zodat licht/donker en de look & feel
+   exact overeenkomen met de referentie. */
+:root {
+  --bg: #ECEEF3;
+  --surface: #FFFFFF;
+  --surface-2: #F5F6F9;
+  --ink: #17162B;
+  --muted: #676B80;
+  --line: #E1E3EA;
+
+  --side: #17162B;
+  --side-ink: #B9B8CE;
+  --side-hi: #FFFFFF;
+  --side-hover: #24223D;
+
+  --accent: #FFC23D;
+  --accent-ink: #17162B;
+  --brand: #4F46E5;
+  --brand-soft: #ECEBFD;
+
+  --ok: #14805A;
+  --ok-soft: #E2F4EC;
+  --warn: #B86A00;
+  --warn-soft: #FDF1DC;
+  --bad: #C93636;
+  --bad-soft: #FBE7E7;
+
+  --shadow: 0 1px 2px rgba(23, 22, 43, .06), 0 4px 16px rgba(23, 22, 43, .05);
+
+  --r-lg: 18px;
+  --r-md: 12px;
+  --r-sm: 8px;
+
+  --display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+  --body: 'Figtree', 'Segoe UI', system-ui, -apple-system, sans-serif;
+
+  /* 8 vaste categoriekleuren, op volgorde van de alfabetisch gesorteerde categorieën. */
+  --cat-1: #FFC23D;
+  --cat-2: #8C86FF;
+  --cat-3: #5ED3A4;
+  --cat-4: #FF8A7A;
+  --cat-5: #6EC6FF;
+  --cat-6: #F49AD8;
+  --cat-7: #C7D36B;
+  --cat-8: #FFB27A;
+
+  /* Layout */
+  --sidebar-width: 232px;
+  --content-margin: 32px;
+  --cart-width: 380px;
+  --tile-min-width: 160px;
+  --mobile-breakpoint: 860px;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #0E0D1A;
+    --surface: #191830;
+    --surface-2: #211F3A;
+    --ink: #EEEDF7;
+    --muted: #9C9DB4;
+    --line: #2D2B48;
+
+    --side: #090813;
+    --side-ink: #A8A7C0;
+    --side-hover: #1C1A33;
+
+    --brand: #8C86FF;
+    --brand-soft: #26244A;
+
+    --ok: #3FCB91;
+    --ok-soft: #163328;
+    --warn: #F2A93B;
+    --warn-soft: #3A2A12;
+    --bad: #FF6B6B;
+    --bad-soft: #3D1A1F;
+
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3);
+
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --bg: #0E0D1A;
+  --surface: #191830;
+  --surface-2: #211F3A;
+  --ink: #EEEDF7;
+  --muted: #9C9DB4;
+  --line: #2D2B48;
+
+  --side: #090813;
+  --side-ink: #A8A7C0;
+  --side-hover: #1C1A33;
+
+  --brand: #8C86FF;
+  --brand-soft: #26244A;
+
+  --ok: #3FCB91;
+  --ok-soft: #163328;
+  --warn: #F2A93B;
+  --warn-soft: #3A2A12;
+  --bad: #FF6B6B;
+  --bad-soft: #3D1A1F;
+
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3);
+
+  color-scheme: dark;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}

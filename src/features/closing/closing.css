@@ -1,0 +1,73 @@
+/* transactions.css importeert op zijn beurt al inventory.css en pos.css, dus
+   dit geeft toegang tot .inv-table, .sum/.sum-row, .tx-empty, etc. */
+@import '../transactions/transactions.css';
+
+.closing-page {
+  max-width: 720px;
+}
+
+.closing-filters {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.closing-filters label,
+.closing-count label,
+.closing-page > label {
+  display: block;
+  font-weight: 600;
+}
+
+.closing-filters select,
+.closing-filters input,
+.closing-count input,
+.closing-page > label input {
+  display: block;
+  margin-top: 6px;
+  padding: 8px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.closing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.closing-stat {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.closing-stat b {
+  font: 800 22px var(--display);
+}
+
+.closing-stat span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.closing-count {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.diff-ok {
+  color: var(--ok);
+}
+
+.diff-bad {
+  color: var(--bad);
+}

@@ -1,0 +1,15 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dev",
+      "runtimeExecutable": "/Users/tomnuijens/.nvm/versions/node/v26.13.0/bin/node",
+      "runtimeArgs": [
+        "/Users/tomnuijens/Library/CloudStorage/OneDrive-SuperstructEntertainmentLtd/Bureaublad/standwerk-pos/node_modules/vite/bin/vite.js",
+        "--host",
+        "127.0.0.1"
+      ],
+      "port": 5173
+    }
+  ]
+}

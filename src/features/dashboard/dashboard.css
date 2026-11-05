@@ -1,0 +1,187 @@
+@import '../transactions/transactions.css';
+
+.dash-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.hero-card {
+  background: var(--ink);
+  color: #fff;
+  border-radius: var(--r-lg);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-card::after {
+  content: '';
+  position: absolute;
+  right: -30px;
+  top: -30px;
+  width: 140px;
+  height: 140px;
+  border-radius: 32px;
+  background: var(--accent);
+  transform: rotate(18deg);
+  opacity: 0.95;
+}
+
+.hero-label {
+  color: #ffffffb0;
+  font-weight: 600;
+}
+
+.hero-amount {
+  font: 800 48px var(--display);
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-sub {
+  color: #ffffffb0;
+}
+
+.trend {
+  font-weight: 700;
+  width: fit-content;
+}
+
+.trend-up {
+  color: var(--ok);
+}
+
+.trend-down {
+  color: var(--bad);
+}
+
+.trend-flat {
+  color: var(--muted);
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.kpi {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kpi b {
+  font: 700 22px var(--display);
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.dash-wide {
+  grid-column: 1 / -1;
+}
+
+.dash-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 16px;
+  min-width: 0;
+}
+
+/* Vaste hoogte + position:relative is vereist voor Chart.js met
+   maintainAspectRatio:false. Zonder dit groeit de grafiek (en haar grid-cel)
+   oneindig door: canvas vult container -> container groeit mee -> canvas
+   vult opnieuw -> ResizeObserver-lus. */
+.chart-box {
+  position: relative;
+  height: 220px;
+}
+
+.dash-card h2 {
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+
+.dash-subheading {
+  margin-top: 16px;
+}
+
+.rank-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rank-list li {
+  display: flex;
+  justify-content: space-between;
+  font-variant-numeric: tabular-nums;
+}
+
+.rank-bad {
+  color: var(--bad);
+}
+
+.rank-warn {
+  color: var(--warn);
+}
+
+.method-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.method-bar-row {
+  display: grid;
+  grid-template-columns: 70px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.method-bar-track {
+  height: 8px;
+  background: var(--surface-2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.method-bar-fill {
+  height: 100%;
+  background: var(--brand);
+}
+
+.recent-refund {
+  color: var(--bad);
+}
+
+@media (max-width: 860px) {
+  .dash-grid {
+    grid-template-columns: 1fr;
+  }
+}

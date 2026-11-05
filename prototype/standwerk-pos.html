@@ -1,0 +1,1500 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Standwerk POS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#ECEEF3; --surface:#FFFFFF; --surface-2:#F5F6F9; --ink:#17162B; --muted:#676B80; --line:#E1E3EA;
+  --side:#17162B; --side-ink:#B9B8CE; --side-hi:#FFFFFF; --side-hover:#24223D;
+  --accent:#FFC23D; --accent-ink:#17162B; --brand:#4F46E5; --brand-soft:#ECEBFD;
+  --ok:#14805A; --ok-soft:#E2F4EC; --warn:#B86A00; --warn-soft:#FDF1DC; --bad:#C93636; --bad-soft:#FBE7E7;
+  --shadow:0 1px 2px rgba(23,22,43,.06),0 4px 16px rgba(23,22,43,.05);
+  --r-lg:18px; --r-md:12px; --r-sm:8px;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+  color-scheme:light;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E0D1A; --surface:#191830; --surface-2:#211F3A; --ink:#EEEDF7; --muted:#9C9DB4; --line:#2D2B48;
+    --side:#090813; --side-ink:#A8A7C0; --side-hover:#1C1A33;
+    --brand:#8C86FF; --brand-soft:#26244A;
+    --ok:#3FCB91; --ok-soft:#163328; --warn:#F2A93B; --warn-soft:#3A2A12; --bad:#FF6B6B; --bad-soft:#3D1A1F;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E0D1A; --surface:#191830; --surface-2:#211F3A; --ink:#EEEDF7; --muted:#9C9DB4; --line:#2D2B48;
+  --side:#090813; --side-ink:#A8A7C0; --side-hover:#1C1A33;
+  --brand:#8C86FF; --brand-soft:#26244A;
+  --ok:#3FCB91; --ok-soft:#163328; --warn:#F2A93B; --warn-soft:#3A2A12; --bad:#FF6B6B; --bad-soft:#3D1A1F;
+  --shadow:0 1px 2px rgba(0,0,0,.3);
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.app{display:grid;grid-template-columns:232px 1fr;height:100%}
+
+/* Sidebar */
+.side{background:var(--side);color:var(--side-ink);display:flex;flex-direction:column;padding:22px 14px;gap:4px;overflow-y:auto}
+.logo{display:flex;align-items:center;gap:10px;padding:0 10px 22px;color:var(--side-hi)}
+.logo-mark{width:34px;height:34px;border-radius:10px;background:var(--accent);display:grid;place-items:center}
+.logo-name{font:800 20px/1 var(--display);letter-spacing:-.02em}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav button{display:flex;align-items:center;gap:12px;border:0;background:none;color:inherit;padding:11px 12px;border-radius:10px;font-weight:600;text-align:left;width:100%}
+.nav button:hover{background:var(--side-hover);color:var(--side-hi)}
+.nav button[aria-current="page"]{background:var(--side-hover);color:var(--side-hi);box-shadow:inset 3px 0 0 var(--accent)}
+.nav svg{width:20px;height:20px;flex:none}
+.side-foot{margin-top:auto;padding:14px 12px 0;border-top:1px solid #ffffff14;font-size:13px}
+.side-foot strong{display:block;color:var(--side-hi);font-weight:600;margin-bottom:2px}
+.sync{display:flex;align-items:center;gap:7px;margin-top:6px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.dot.on{background:#3FCB91}
+
+/* Main */
+main{overflow-y:auto;min-width:0}
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:26px 32px 18px;flex-wrap:wrap}
+.top h1{font:800 30px/1.1 var(--display);letter-spacing:-.025em;margin:0}
+.top p{margin:4px 0 0;color:var(--muted)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.view{padding:0 32px 40px;display:none}
+.view.on{display:block}
+
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);padding:9px 14px;border-radius:10px;font-weight:600;font-size:14px;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn svg{width:17px;height:17px}
+.btn.primary{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.btn.accent{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.danger{color:var(--bad)}
+.btn.ghost{background:none;border-color:transparent}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.seg{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:3px}
+.seg button{border:0;background:none;padding:6px 12px;border-radius:7px;font-weight:600;font-size:13px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.input,select.input{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 12px;min-width:0}
+.input:focus{border-color:var(--brand);outline:none}
+.search{position:relative;flex:1;min-width:200px}
+.search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:17px;height:17px;color:var(--muted)}
+.search .input{width:100%;padding-left:36px}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:20px;min-width:0}
+.panel h2{font:700 17px/1.2 var(--display);margin:0 0 14px;letter-spacing:-.01em;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.panel h2 small{font:500 13px var(--body);color:var(--muted)}
+
+/* Dashboard */
+.hero{display:grid;grid-template-columns:1.3fr 2fr;gap:16px;margin-bottom:16px}
+.hero-main{background:var(--ink);color:var(--surface);border-radius:var(--r-lg);padding:24px;display:flex;flex-direction:column;justify-content:space-between;min-height:190px;position:relative;overflow:hidden}
+.hero-main .lbl{opacity:.7;font-weight:500}
+.hero-main .big{font:800 clamp(40px,5vw,58px)/1 var(--display);letter-spacing:-.035em;margin:10px 0}
+.hero-main .sub{display:flex;gap:18px;flex-wrap:wrap;font-size:14px;opacity:.85}
+.hero-main::after{content:"";position:absolute;right:-30px;top:-30px;width:140px;height:140px;border-radius:32px;background:var(--accent);transform:rotate(18deg);opacity:.95}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:18px;box-shadow:var(--shadow)}
+.kpi .lbl{color:var(--muted);font-size:13px;font-weight:600}
+.kpi .val{font:700 28px/1.1 var(--display);letter-spacing:-.02em;margin-top:6px}
+.kpi .hint{font-size:13px;color:var(--muted);margin-top:2px}
+.grid-2{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.chart-box{position:relative;height:260px}
+.chart-box.sm{height:220px}
+.bars{display:flex;flex-direction:column;gap:12px}
+.bar-row{display:grid;grid-template-columns:1fr auto;gap:4px 10px;font-size:14px}
+.bar-row .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.bar-row .nm small{color:var(--muted)}
+.bar-row .am{font-weight:600;font-variant-numeric:tabular-nums}
+.bar-track{grid-column:1/-1;height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden}
+.bar-fill{height:100%;background:var(--brand);border-radius:3px}
+.list{display:flex;flex-direction:column}
+.list-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.list-row:last-child{border-bottom:0}
+.empty{color:var(--muted);font-size:14px;padding:12px 0}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;padding:3px 8px;border-radius:999px;white-space:nowrap}
+.badge.ok{background:var(--ok-soft);color:var(--ok)}
+.badge.warn{background:var(--warn-soft);color:var(--warn)}
+.badge.bad{background:var(--bad-soft);color:var(--bad)}
+.badge.neutral{background:var(--surface-2);color:var(--muted)}
+
+/* Kassa */
+.pos{display:grid;grid-template-columns:1fr 380px;gap:16px;align-items:start}
+.pos-tools{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 14px;font-weight:600;font-size:13px}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.tile{position:relative;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:var(--r-md);padding:14px;display:flex;flex-direction:column;gap:4px;min-height:132px;box-shadow:var(--shadow);transition:transform .08s}
+.tile:hover{border-color:var(--brand)}
+.tile:active{transform:scale(.98)}
+.tile:disabled{opacity:.45}
+.tile .swatch{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font:800 13px var(--display);color:#17162B;margin-bottom:6px}
+.tile .tn{font-weight:700;line-height:1.25}
+.tile .tv{font-size:12px;color:var(--muted)}
+.tile .tp{margin-top:auto;font:700 17px var(--display);display:flex;justify-content:space-between;align-items:baseline}
+.tile .ts{font:600 12px var(--body);color:var(--muted)}
+.tile .ts.low{color:var(--warn)}
+.tile .ts.out{color:var(--bad)}
+.cart{position:sticky;top:16px;display:flex;flex-direction:column;max-height:calc(100vh - 140px)}
+.cart-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px}
+.cart-head h2{margin:0}
+.cart-lines{flex:1;overflow-y:auto;margin:0 -6px;padding:0 6px;min-height:120px}
+.line{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.line .ln{font-weight:600;font-size:14px}
+.line .lv{font-size:12px;color:var(--muted)}
+.line .lt{font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+.qty{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-top:6px}
+.qty button{border:0;background:var(--surface-2);width:30px;height:28px;font-weight:700}
+.qty span{min-width:32px;text-align:center;font-weight:600;font-variant-numeric:tabular-nums}
+.sum{border-top:1px solid var(--line);padding-top:12px;margin-top:8px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.sum-row{display:flex;justify-content:space-between}
+.sum-row.total{font:800 26px/1.2 var(--display);letter-spacing:-.02em;margin-top:4px}
+.pay{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.pay button{border:0;border-radius:12px;padding:14px 8px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--surface-2)}
+.pay button svg{width:22px;height:22px}
+.pay button.main{background:var(--accent);color:var(--accent-ink)}
+.pay button:disabled{opacity:.4;cursor:not-allowed}
+.cart-fab{display:none}
+
+/* Tables */
+.stock-cards{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-size:12px;font-weight:700;color:var(--muted);padding:12px 14px;border-bottom:1px solid var(--line);background:var(--surface-2);white-space:nowrap;position:sticky;top:0}
+td{padding:11px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:var(--surface-2)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.sku{font-size:12px;color:var(--muted)}
+.stepper{display:inline-flex;align-items:center;gap:6px}
+.stepper button{width:26px;height:26px;border-radius:7px;border:1px solid var(--line);background:var(--surface);font-weight:700;line-height:1}
+.stepper b{min-width:34px;text-align:center;font-variant-numeric:tabular-nums}
+.icon-btn{border:0;background:none;padding:6px;border-radius:8px;color:var(--muted)}
+.icon-btn:hover{background:var(--surface-2);color:var(--ink)}
+.icon-btn svg{width:17px;height:17px;display:block}
+tr.clickable{cursor:pointer}
+
+/* Settings */
+.form{display:grid;gap:14px;max-width:560px}
+.field{display:grid;gap:6px}
+.field label{font-weight:600;font-size:14px}
+.field small{color:var(--muted)}
+.settings{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+/* Modal + toast */
+.scrim{position:fixed;inset:0;background:rgba(10,9,20,.5);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+.scrim.on{display:flex}
+.modal{background:var(--surface);border-radius:20px;width:min(560px,100%);max-height:calc(100vh - 40px);overflow-y:auto;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.3);animation:pop .16s ease-out}
+.modal h3{font:800 22px/1.2 var(--display);margin:0 0 6px;letter-spacing:-.02em}
+.modal .lead{color:var(--muted);margin:0 0 18px}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;flex-wrap:wrap}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-grid .full{grid-column:1/-1}
+.variants{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px}
+.variants button{border:1px solid var(--line);background:var(--surface-2);border-radius:12px;padding:14px 8px;font-weight:800;font-size:17px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.variants button small{font:600 12px var(--body);color:var(--muted)}
+.variants button:hover:not(:disabled){border-color:var(--brand)}
+.variants button:disabled{opacity:.4;cursor:not-allowed}
+.receipt{background:var(--surface-2);border-radius:14px;padding:16px;font-size:14px}
+.receipt .list-row{padding:7px 0}
+.check{width:52px;height:52px;border-radius:50%;background:var(--ok-soft);color:var(--ok);display:grid;place-items:center;margin-bottom:14px}
+.cash-quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
+.import-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.import-stats div{background:var(--surface-2);border-radius:12px;padding:12px}
+.import-stats b{display:block;font:800 24px var(--display)}
+.import-stats span{font-size:13px;color:var(--muted)}
+.drop{border:2px dashed var(--line);border-radius:14px;padding:28px;text-align:center;color:var(--muted)}
+.drop.over{border-color:var(--brand);background:var(--brand-soft)}
+.toasts{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));right:20px;display:flex;flex-direction:column;gap:8px;z-index:60}
+.toast{background:var(--ink);color:var(--surface);padding:12px 16px;border-radius:12px;font-weight:600;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.25);animation:pop .16s ease-out}
+.toast.bad{background:var(--bad);color:#fff}
+.loading{padding:80px 32px;text-align:center;color:var(--muted)}
+@keyframes pop{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* Responsive */
+@media (max-width:1180px){
+  .hero{grid-template-columns:1fr}
+  .grid-2{grid-template-columns:1fr}
+  .grid-3{grid-template-columns:1fr 1fr}
+  .stock-cards{grid-template-columns:repeat(3,1fr)}
+  .pos{grid-template-columns:1fr 320px}
+}
+@media (max-width:860px){
+  .app{grid-template-columns:1fr;grid-template-rows:1fr auto}
+  .side{order:2;flex-direction:row;padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));position:fixed;bottom:0;left:0;right:0;z-index:40}
+  .logo,.side-foot{display:none}
+  .nav{flex-direction:row;width:100%;justify-content:space-around}
+  .nav button{flex-direction:column;gap:3px;font-size:11px;padding:7px 4px;align-items:center;text-align:center}
+  .nav button[aria-current="page"]{box-shadow:inset 0 -3px 0 var(--accent)}
+  main{padding-bottom:84px}
+  .top{padding:18px 16px 14px}
+  .top h1{font-size:24px}
+  .view{padding:0 16px 30px}
+  .grid-3,.settings{grid-template-columns:1fr}
+  .kpis{grid-template-columns:1fr 1fr}
+  .stock-cards{grid-template-columns:1fr 1fr}
+  .pos{grid-template-columns:1fr}
+  .cart{position:static;max-height:none}
+  .cart-fab{display:flex;position:fixed;left:16px;right:16px;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:30;justify-content:space-between;background:var(--accent);color:var(--accent-ink);border:0;border-radius:14px;padding:14px 18px;font-weight:800;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+  .tiles{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+  .form-grid{grid-template-columns:1fr}
+  .toasts{bottom:calc(150px + env(safe-area-inset-bottom,0px));left:16px;right:16px}
+}
+/* v2 */
+[hidden]{display:none!important}
+.hero-main>*{position:relative;z-index:1}
+.hero-main::after{width:110px;height:110px;right:-34px;top:-34px}
+.kpis{grid-template-columns:repeat(3,1fr)}
+.hero{grid-template-columns:1fr 2fr}
+.delta{font-weight:700}
+.delta.up{color:var(--ok)}
+.delta.down{color:var(--bad)}
+.hero-main .delta.up{color:#6FE3B0}
+.hero-main .delta.down{color:#FF9A9A}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:0 0 16px;overflow-x:auto}
+.tabs button{border:0;background:none;padding:10px 14px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--ink);border-color:var(--ink)}
+.tabs button .count{display:inline-block;margin-left:6px;font-size:12px;background:var(--surface-2);border-radius:999px;padding:1px 7px;color:var(--muted)}
+.neg{color:var(--bad)}
+.pos-pos{color:var(--ok)}
+.cart.refund{border-color:var(--bad);box-shadow:inset 0 4px 0 var(--bad),var(--shadow)}
+.cart-head{flex-wrap:wrap}
+.cart-head .btns{display:flex;gap:2px;flex-wrap:wrap;margin-left:-9px;width:100%}
+.cart-head .btns .btn{padding:6px 9px;font-size:13px}
+.mode-pill{display:none;background:var(--bad-soft);color:var(--bad);font-weight:700;font-size:13px;border-radius:10px;padding:8px 12px;margin-bottom:10px}
+.cart.refund .mode-pill{display:block}
+.parked{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.parked:empty{display:none}
+.parked button{border:1px dashed var(--muted);background:var(--surface-2);border-radius:10px;padding:6px 10px;font-size:12px;font-weight:700}
+.credit-row{background:var(--ok-soft);color:var(--ok);border-radius:10px;padding:8px 10px;font-weight:700}
+.credit-row button{border:0;background:none;color:inherit;font-weight:800;padding:0 4px}
+.cart-hint{font-size:13px;color:var(--bad);font-weight:600;margin-top:8px}
+.cart-hint:empty{display:none}
+.ret-row{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.ret-row .sku{display:block}
+.ret-row .done{font-size:12px;color:var(--muted)}
+.checkline{display:flex;gap:10px;align-items:center;font-weight:600;font-size:14px}
+.checkline input{width:18px;height:18px;accent-color:var(--brand)}
+.feed .list-row{gap:12px}
+.feed .t{color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px;min-width:44px}
+.feed .m{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.z-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+.z-grid div{background:var(--surface-2);border-radius:12px;padding:12px}
+.z-grid b{display:block;font:800 20px var(--display)}
+.z-grid span{font-size:12px;color:var(--muted)}
+.mini-table{width:100%;font-size:14px;margin:6px 0 14px}
+.mini-table td,.mini-table th{padding:7px 4px;background:none;position:static}
+.diff{font:800 22px var(--display)}
+.modal.wide{width:min(720px,100%)}
+@media (max-width:1180px){.hero{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:860px){.kpis{grid-template-columns:1fr 1fr}.z-grid{grid-template-columns:1fr 1fr}.ret-row{grid-template-columns:1fr auto}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="logo">
+      <div class="logo-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#17162B" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="8" cy="8" r="1.5" fill="#17162B"/></svg></div>
+      <span class="logo-name">Standwerk</span>
+    </div>
+    <nav class="nav" aria-label="Hoofdmenu">
+      <button data-view="dashboard" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>Dashboard</button>
+      <button data-view="kassa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg>Kassa</button>
+      <button data-view="producten"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5V8Z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg>Voorraad</button>
+      <button data-view="transacties"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2Z"/><path d="M9 7h6M9 11h6M9 15h3"/></svg>Transacties</button>
+      <button data-view="instellingen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>Instellingen</button>
+    </nav>
+    <div class="side-foot">
+      <strong id="sf-event">—</strong>
+      <span id="sf-register">Geen kassa gekozen</span>
+      <div class="sync"><span class="dot" id="sf-dot"></span><span id="sf-mode">Verbinden…</span></div>
+    </div>
+  </aside>
+
+  <main id="main">
+    <div class="loading" id="loading">Gegevens laden…</div>
+
+    <!-- DASHBOARD -->
+    <section class="view" id="v-dashboard">
+      <div class="top">
+        <div><h1>Dashboard</h1><p id="d-sub">Overzicht van verkoop en voorraad</p></div>
+        <div class="actions">
+          <div class="seg" id="d-range" role="group" aria-label="Periode">
+            <button data-r="today" aria-pressed="true">Vandaag</button>
+            <button data-r="7d" aria-pressed="false">7 dagen</button>
+            <button data-r="all" aria-pressed="false">Alles</button>
+          </div>
+          <select class="input" id="d-reg" aria-label="Kassa filter"></select>
+          <button class="btn" id="d-export"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Exporteren</button>
+        </div>
+      </div>
+      <div class="hero">
+        <div class="hero-main">
+          <div class="lbl">Netto omzet incl. btw</div>
+          <div class="big" id="k-rev">€ 0</div>
+          <div class="sub"><span id="k-rev-d"></span><span id="k-rev-ex">—</span><span id="k-margin">—</span></div>
+        </div>
+        <div class="kpis">
+          <div class="kpi"><div class="lbl">Transacties</div><div class="val" id="k-tx">0</div><div class="hint" id="k-tx-h">—</div></div>
+          <div class="kpi"><div class="lbl">Gemiddelde bon</div><div class="val" id="k-avg">€ 0</div><div class="hint" id="k-avg-h">—</div></div>
+          <div class="kpi"><div class="lbl">Items verkocht</div><div class="val" id="k-items">0</div><div class="hint" id="k-items-h">—</div></div>
+          <div class="kpi"><div class="lbl">Retouren</div><div class="val" id="k-ret">€ 0</div><div class="hint" id="k-ret-h">—</div></div>
+          <div class="kpi"><div class="lbl">Korting gegeven</div><div class="val" id="k-disc">€ 0</div><div class="hint" id="k-disc-h">—</div></div>
+          <div class="kpi"><div class="lbl">Voorraadwaarde</div><div class="val" id="k-stock">€ 0</div><div class="hint" id="k-stock-h">—</div></div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="panel"><h2>Omzetverloop <small id="c-rev-l">per uur</small></h2><div class="chart-box"><canvas id="c-rev"></canvas></div></div>
+        <div class="panel"><h2>Per categorie</h2><div class="chart-box"><canvas id="c-cat"></canvas></div></div>
+      </div>
+      <div class="grid-3" style="margin-bottom:16px">
+        <div class="panel"><h2>Bestsellers <small>op omzet</small></h2><div class="bars" id="d-top"></div></div>
+        <div class="panel"><h2>Kassa’s en betaling</h2><div class="bars" id="d-reg-list"></div><div style="height:18px"></div><div class="chart-box sm" style="height:150px"><canvas id="c-pay"></canvas></div></div>
+        <div class="panel"><h2>Bijna op <small id="d-low-n"></small></h2><div class="list" id="d-low"></div></div>
+      </div>
+      <div class="grid-3">
+        <div class="panel"><h2>Verkoop per maat <small>kleding</small></h2><div class="chart-box sm"><canvas id="c-size"></canvas></div></div>
+        <div class="panel"><h2>Voorraadprognose <small>tempo laatste 7 dagen</small></h2><div class="list" id="d-fc"></div></div>
+        <div class="panel"><h2>Laatste bonnen</h2><div class="list feed" id="d-feed"></div></div>
+      </div>
+    </section>
+
+    <!-- KASSA -->
+    <section class="view" id="v-kassa">
+      <div class="top">
+        <div><h1>Kassa</h1><p>Tik op een product of scan een barcode</p></div>
+        <div class="actions">
+          <button class="btn" id="p-return"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>Retour</button>
+          <button class="btn" id="p-close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>Dagafsluiting</button>
+          <select class="input" id="p-reg" aria-label="Kassa"></select>
+        </div>
+      </div>
+      <div class="pos">
+        <div>
+          <div class="pos-tools">
+            <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input class="input" id="p-search" placeholder="Zoek of scan barcode / SKU en druk Enter" autocomplete="off"></div>
+          </div>
+          <div class="chips" id="p-cats"></div>
+          <div class="tiles" id="p-tiles"></div>
+        </div>
+        <div class="panel cart" id="cart">
+          <div class="cart-head"><h2 id="cart-title">Huidige bon</h2>
+            <div class="btns"><button class="btn ghost" id="cart-mode">Retour zonder bon</button><button class="btn ghost" id="cart-park">Parkeren</button><button class="btn ghost" id="cart-clear">Leegmaken</button></div></div>
+          <div class="mode-pill">Retourmodus: tik de producten aan die de klant terugbrengt. <button class="btn ghost" id="mode-exit" style="padding:0;color:inherit;text-decoration:underline">Stoppen</button></div>
+          <div class="parked" id="parked"></div>
+          <div class="cart-lines" id="cart-lines"></div>
+          <div class="sum">
+            <div class="sum-row"><span>Subtotaal</span><span id="s-sub">€ 0,00</span></div>
+            <div class="sum-row" id="s-disc-row"><span><button class="btn ghost" id="disc-btn" style="padding:0;font-size:14px;color:var(--brand)">Korting toevoegen</button></span><span id="s-disc">—</span></div>
+            <div class="sum-row credit-row" id="s-credit-row" hidden><span>Tegoed omruil <span id="s-credit-ref"></span> <button id="credit-rm" aria-label="Tegoed verwijderen">×</button></span><span id="s-credit">€ 0,00</span></div>
+            <div class="sum-row" style="color:var(--muted);font-size:13px"><span>Waarvan btw</span><span id="s-vat">€ 0,00</span></div>
+            <div class="sum-row total"><span id="s-total-l">Totaal</span><span id="s-total">€ 0,00</span></div>
+          </div>
+          <div class="cart-hint" id="cart-hint"></div>
+          <div class="pay">
+            <button class="main" data-pay="Pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg><span class="pl">Pin</span></button>
+            <button data-pay="Contant"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg><span class="pl">Contant</span></button>
+            <button data-pay="QR"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/></svg><span class="pl">QR / Tikkie</span></button>
+          </div>
+        </div>
+      </div>
+      <button class="cart-fab" id="cart-fab"><span id="fab-n">Bon (0)</span><span id="fab-t">€ 0,00</span></button>
+    </section>
+
+    <!-- VOORRAAD -->
+    <section class="view" id="v-producten">
+      <div class="top">
+        <div><h1>Voorraad</h1><p>Producten, varianten en voorraadniveaus</p></div>
+        <div class="actions">
+          <button class="btn" id="b-template"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>Sjabloon</button>
+          <button class="btn" id="b-import"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>Excel importeren</button>
+          <button class="btn" id="b-export"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Exporteren</button>
+          <button class="btn primary" id="b-new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Product</button>
+        </div>
+      </div>
+      <div class="stock-cards" id="st-cards"></div>
+      <div class="tabs" role="tablist" id="st-tabs"><button role="tab" data-tab="list" aria-selected="true">Producten</button><button role="tab" data-tab="moves" aria-selected="false">Voorraadmutaties<span class="count" id="mv-count">0</span></button></div>
+      <div id="st-list">
+        <div class="toolbar">
+          <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input class="input" id="t-search" placeholder="Zoek op naam, SKU of barcode" autocomplete="off"></div>
+          <select class="input" id="t-cat" aria-label="Categorie"></select>
+          <div class="seg" id="t-filter" role="group" aria-label="Voorraadfilter">
+            <button data-f="all" aria-pressed="true">Alles</button>
+            <button data-f="low" aria-pressed="false">Laag</button>
+            <button data-f="out" aria-pressed="false">Uitverkocht</button>
+          </div>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Product</th><th>Variant</th><th>Categorie</th><th class="num">Prijs</th><th class="num">Inkoop</th><th>Voorraad</th><th>Status</th><th class="num">Verkocht</th><th class="num">Waarde</th><th></th></tr></thead>
+          <tbody id="t-body"></tbody>
+        </table></div>
+      </div>
+      <div id="st-moves" hidden>
+        <div class="toolbar">
+          <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input class="input" id="m-search" placeholder="Zoek op product, SKU of bon" autocomplete="off"></div>
+          <select class="input" id="m-reason" aria-label="Reden"><option value="all">Alle redenen</option><option>Verkoop</option><option>Retour</option><option>Levering</option><option>Telling</option><option>Correctie</option><option>Import</option><option>Handmatig</option></select>
+          <button class="btn" id="m-export"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Mutaties exporteren</button>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Datum</th><th>Product</th><th>Variant</th><th>Reden</th><th class="num">Mutatie</th><th class="num">Nieuwe voorraad</th><th>Kenmerk</th><th>Kassa</th></tr></thead>
+          <tbody id="m-body"></tbody>
+        </table></div>
+      </div>
+      <input type="file" id="file-in" accept=".xlsx,.xls,.csv" hidden>
+    </section>
+
+    <!-- TRANSACTIES -->
+    <section class="view" id="v-transacties">
+      <div class="top">
+        <div><h1>Transacties</h1><p id="tx-sub">Alle afgerekende bonnen</p></div>
+        <div class="actions"><button class="btn" id="b-tx-export"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Exporteren</button></div>
+      </div>
+      <div class="tabs" role="tablist" id="tx-tabs"><button role="tab" data-tab="bon" aria-selected="true">Bonnen</button><button role="tab" data-tab="z" aria-selected="false">Dagafsluitingen<span class="count" id="zc-count">0</span></button></div>
+      <div id="tx-bon">
+        <div class="toolbar">
+          <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input class="input" id="tx-search" placeholder="Zoek bonnummer of product"></div>
+          <select class="input" id="tx-reg" aria-label="Kassa"></select>
+          <div class="seg" id="tx-type" role="group" aria-label="Type"><button data-t="all" aria-pressed="true">Alles</button><button data-t="sale" aria-pressed="false">Verkopen</button><button data-t="refund" aria-pressed="false">Retouren</button></div>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Bon</th><th>Datum</th><th>Kassa</th><th>Producten</th><th>Betaling</th><th class="num">Korting</th><th class="num">Totaal</th></tr></thead>
+          <tbody id="tx-body"></tbody>
+        </table></div>
+      </div>
+      <div id="tx-z" hidden>
+        <div class="toolbar"><button class="btn primary" id="z-new">Nieuwe dagafsluiting</button></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Datum</th><th>Kassa</th><th class="num">Bonnen</th><th class="num">Netto omzet</th><th class="num">Verwacht contant</th><th class="num">Geteld</th><th class="num">Verschil</th><th>Notitie</th><th>Opgeslagen</th></tr></thead>
+          <tbody id="z-body"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- INSTELLINGEN -->
+    <section class="view" id="v-instellingen">
+      <div class="top"><div><h1>Instellingen</h1><p>Event, kassa’s en gegevens</p></div></div>
+      <div class="settings">
+        <div class="panel">
+          <h2>Event</h2>
+          <div class="form">
+            <div class="field"><label for="set-event">Naam van het event of de tour</label><input class="input" id="set-event"></div>
+            <div class="field"><label for="set-regs">Kassa’s of stands</label><input class="input" id="set-regs"><small>Scheid met komma’s, bijvoorbeeld: Hoofdpodium, Ingang Noord, VIP</small></div>
+            <div class="field"><label for="set-vat">Btw-percentage</label><input class="input" id="set-vat" type="number" min="0" max="30" step="1"></div>
+            <div class="field"><label for="set-low">Standaard minimumvoorraad</label><input class="input" id="set-low" type="number" min="0" step="1"><small>Gebruikt als een product geen eigen minimum heeft</small></div>
+            <div class="field"><label for="set-float">Standaard wisselgeld in de kassa</label><input class="input" id="set-float" type="number" min="0" step="1"><small>Beginsaldo bij de dagafsluiting</small></div>
+            <div class="field"><label for="set-retdays">Retourtermijn in dagen</label><input class="input" id="set-retdays" type="number" min="0" step="1"><small>Bij oudere bonnen krijg je een waarschuwing. 0 = geen termijn.</small></div>
+            <div><button class="btn primary" id="set-save">Instellingen opslaan</button></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Gegevens</h2>
+          <p id="set-mode" style="margin-top:0;color:var(--muted)"></p>
+          <div class="form">
+            <div class="field"><label>Voorbeelddata</label><small>Vult de kassa met een merch-assortiment, een week aan verkopen en een paar retouren.</small><div><button class="btn" id="set-demo">Voorbeelddata laden</button></div></div>
+            <div class="field"><label>Thema</label>
+              <div class="seg" id="set-theme" role="group" aria-label="Thema"><button data-t="auto" aria-pressed="true">Systeem</button><button data-t="light" aria-pressed="false">Licht</button><button data-t="dark" aria-pressed="false">Donker</button></div></div>
+            <div class="field"><label>Alles wissen</label><small>Verwijdert alle producten, transacties, mutaties en afsluitingen. Exporteer eerst als je ze wilt bewaren.</small><div><button class="btn danger" id="set-wipe">Alle gegevens wissen</button></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="scrim" id="scrim"><div class="modal" id="modal" role="dialog" aria-modal="true"></div></div>
+<div class="toasts" id="toasts"></div>
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const fmt=new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR'});
+const fmt0=new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR',maximumFractionDigits:0});
+const eur=v=>fmt.format(Number(v)||0);
+const eur0=v=>fmt0.format(Number(v)||0);
+const num=v=>new Intl.NumberFormat('nl-NL').format(Number(v)||0);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>(window.crypto&&crypto.randomUUID)?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2,10);
+const round2=v=>Math.round((Number(v)||0)*100)/100;
+const sum=(a,f)=>a.reduce((x,y)=>x+(f(y)||0),0);
+const isRefund=s=>s&&s.type==='refund';
+const sign=s=>isRefund(s)?-1:1;
+const unitOf=(s,i)=>isRefund(s)?(+i.unit||+i.price||0):(+i.price||0);
+function lsGet(k){try{return localStorage.getItem('standwerk-'+k)}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem('standwerk-'+k,v)}catch(e){}}
+
+const DEFAULTS={event:'Mijn event',registers:['Stand 1','Stand 2'],vat:21,lowDefault:5,float:150,retDays:30};
+const S={products:[],sales:[],moves:[],closings:[],settings:{...DEFAULTS},mode:'loading',ready:false};
+let db=null;
+let cart=[], discount=null, credit=null, posMode='sale';
+let view='dashboard', range='today', dashReg='all', posCat='Alles', tFilter='all', stTab='list', txTab='bon', txType='all';
+let charts={};
+let register=lsGet('register');
+let parked=[];try{parked=JSON.parse(lsGet('parked')||'[]')}catch(e){parked=[]}
+
+/* ---------- Opslag ---------- */
+function loadLocal(){
+  try{const raw=lsGet('data');if(raw){const d=JSON.parse(raw);S.products=d.products||[];S.sales=d.sales||[];S.moves=d.moves||[];S.closings=d.closings||[];S.settings={...DEFAULTS,...(d.settings||{})}}}catch(e){}
+}
+function saveLocal(){S.moves=S.moves.slice(0,2000);lsSet('data',JSON.stringify({products:S.products,sales:S.sales,moves:S.moves,closings:S.closings,settings:S.settings}))}
+function body(o){const c={...o};delete c.id;return JSON.parse(JSON.stringify(c))}
+async function chunked(tasks,size){for(let i=0;i<tasks.length;i+=size){await Promise.all(tasks.slice(i,i+size).map(t=>t()))}}
+function putMany(col,list,arrKey,sortDesc){
+  if(db)return chunked(list.map(x=>()=>db.collection(col).doc(x.id).set(body(x))),15);
+  const arr=S[arrKey];list.forEach(x=>{const i=arr.findIndex(y=>y.id===x.id);if(i>-1)arr[i]=x;else arr.push(x)});
+  if(sortDesc)arr.sort((a,b)=>b.ts-a.ts);saveLocal();changed();return Promise.resolve();
+}
+const api={
+  putProduct:p=>putMany('products',[p],'products'),
+  putProducts:l=>putMany('products',l,'products'),
+  async delProduct(id){if(db)await db.collection('products').doc(id).delete();else{S.products=S.products.filter(p=>p.id!==id);saveLocal();changed()}},
+  async setStock(id,stock){if(db)await db.collection('products').doc(id).update({stock});else{const p=S.products.find(x=>x.id===id);if(p)p.stock=stock;saveLocal();changed()}},
+  addSales:l=>putMany('sales',l,'sales',true),
+  async updateSale(id,patch){if(db)await db.collection('sales').doc(id).update(patch);else{const s=S.sales.find(x=>x.id===id);if(s)Object.assign(s,patch);saveLocal();changed()}},
+  addMoves:l=>putMany('movements',l,'moves',true).catch(()=>{}),
+  addClosing:z=>putMany('closings',[z],'closings',true),
+  async saveSettings(st){if(db)await db.doc('config/settings').set(st);else{S.settings={...st};saveLocal();changed()}},
+  async wipe(){
+    if(db){for(const [col,arr] of [['products',S.products],['sales',S.sales],['movements',S.moves],['closings',S.closings]])await chunked(arr.map(x=>()=>db.collection(col).doc(x.id).delete()),15)}
+    else{S.products=[];S.sales=[];S.moves=[];S.closings=[];saveLocal();changed()}
+  }
+};
+async function initStore(){
+  let cap=null;
+  try{if(window.claude&&typeof window.claude.use==='function')cap=await Promise.race([window.claude.use('db'),new Promise(r=>setTimeout(()=>r(null),10000))])}catch(e){cap=null}
+  if(!cap){S.mode='local';loadLocal();S.ready=true;changed();return}
+  db=cap;S.mode='db';
+  const got={p:0,s:0,c:0};
+  const done=()=>{if(got.p&&got.s&&got.c&&!S.ready){S.ready=true;clearTimeout(timer)}changed()};
+  const timer=setTimeout(()=>{if(!S.ready){S.ready=true;changed();toast('Gedeelde opslag reageert traag. Gegevens verschijnen zodra de verbinding er is.','bad')}},10000);
+  const fail=e=>toast('Verbinding met opslag verbroken: '+(e&&e.message||'onbekende fout'),'bad');
+  const map=s=>s.docs.map(d=>({id:d.id,...d.data()}));
+  db.collection('products').onSnapshot(s=>{S.products=map(s);got.p=1;done()},fail);
+  db.collection('sales').orderBy('ts','desc').limit(1000).onSnapshot(s=>{S.sales=map(s);got.s=1;done()},fail);
+  db.collection('movements').orderBy('ts','desc').limit(500).onSnapshot(s=>{S.moves=map(s);done()},fail);
+  db.collection('closings').orderBy('ts','desc').limit(200).onSnapshot(s=>{S.closings=map(s);done()},fail);
+  db.doc('config/settings').onSnapshot(s=>{S.settings={...DEFAULTS,...(s.exists?s.data():{})};got.c=1;done()},fail);
+}
+
+/* ---------- Helpers ---------- */
+const CAT_COLORS=['#FFC23D','#8C86FF','#5ED3A4','#FF8A7A','#6EC6FF','#F49AD8','#C7D36B','#FFB27A'];
+function cats(){return [...new Set(S.products.map(p=>p.category||'Overig'))].sort((a,b)=>a.localeCompare(b,'nl'))}
+function catColor(c){const i=cats().indexOf(c);return CAT_COLORS[(i<0?0:i)%CAT_COLORS.length]}
+function minOf(p){return p.minStock!==''&&p.minStock!=null&&Number.isFinite(+p.minStock)?+p.minStock:S.settings.lowDefault}
+function stockState(p){const s=+p.stock||0;if(s<=0)return 'out';if(s<=minOf(p))return 'low';return 'ok'}
+function regs(){const r=(S.settings.registers||[]).filter(Boolean);return r.length?r:['Kassa 1']}
+function cssVar(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+function pById(id){return S.products.find(p=>p.id===id)}
+function startOfDay(t){const d=new Date(t);d.setHours(0,0,0,0);return d.getTime()}
+function dateKey(t){const d=new Date(t);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function keyToTs(k){const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d).getTime()}
+const dt=t=>new Date(t).toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+const tm=t=>new Date(t).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
+function mv(p,delta,after,reason,ref){return {id:uid(),ts:Date.now(),pid:p.id,sku:p.sku||'',name:p.name,variant:p.variant||'',delta,after,reason,ref:ref||'',register:register||''}}
+function returnedQty(saleId,pid){return sum(S.sales.filter(r=>isRefund(r)&&r.refOf===saleId),r=>sum(r.items.filter(i=>i.pid===pid),i=>i.qty))}
+function refundsOf(saleId){return S.sales.filter(r=>isRefund(r)&&r.refOf===saleId)}
+
+function toast(msg,kind){const t=document.createElement('div');t.className='toast'+(kind?' '+kind:'');t.textContent=msg;$('#toasts').appendChild(t);setTimeout(()=>t.remove(),3800)}
+function openModal(html,onMount,wide){
+  const m=$('#modal');m.className='modal'+(wide?' wide':'');m.innerHTML=html;$('#scrim').classList.add('on');
+  if(onMount)onMount(m);
+  const f=m.querySelector('[autofocus]')||m.querySelector('button,input');if(f)f.focus();
+}
+function closeModal(){$('#scrim').classList.remove('on');$('#modal').innerHTML=''}
+$('#scrim').addEventListener('click',e=>{if(e.target.id==='scrim')closeModal()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#scrim').classList.contains('on'))closeModal()});
+function bindSeg(root,attr,cb){root.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||!root.contains(b))return;root.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));cb(b.dataset[attr])})}
+function bindTabs(root,cb){root.addEventListener('click',e=>{const b=e.target.closest('[role=tab]');if(!b)return;root.querySelectorAll('[role=tab]').forEach(x=>x.setAttribute('aria-selected',x===b));cb(b.dataset.tab)})}
+
+/* ---------- Navigatie ---------- */
+const VIEWS=['dashboard','kassa','producten','transacties','instellingen'];
+function go(v){
+  if(!VIEWS.includes(v))v='dashboard';view=v;
+  $$('.nav button').forEach(b=>b.setAttribute('aria-current',b.dataset.view===v?'page':'false'));
+  if(S.ready)$$('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));
+  if(location.hash!=='#'+v)history.replaceState(null,'','#'+v);
+  render();
+  if(v==='kassa'&&window.innerWidth>860)setTimeout(()=>$('#p-search').focus(),50);
+}
+$$('.nav button').forEach(b=>b.addEventListener('click',()=>go(b.dataset.view)));
+window.addEventListener('hashchange',()=>go(location.hash.slice(1)));
+function changed(){if(!S.ready)return;$('#loading').style.display='none';$$('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+view));renderChrome();render()}
+function renderChrome(){
+  $('#sf-event').textContent=S.settings.event||'Mijn event';
+  if(!register||!regs().includes(register))register=regs()[0];
+  $('#sf-register').textContent=register;
+  $('#sf-dot').classList.toggle('on',S.mode==='db');
+  $('#sf-mode').textContent=S.mode==='db'?'Gedeeld opgeslagen':'Opgeslagen op dit apparaat';
+  $('#p-reg').innerHTML=regs().map(r=>`<option${r===register?' selected':''}>${esc(r)}</option>`).join('');
+  if(dashReg!=='all'&&!regs().includes(dashReg))dashReg='all';
+  const all='<option value="all">Alle kassa’s</option>'+regs().map(r=>`<option>${esc(r)}</option>`).join('');
+  const txr=$('#tx-reg').value||'all';
+  $('#d-reg').innerHTML=all;$('#d-reg').value=dashReg;
+  $('#tx-reg').innerHTML=all;$('#tx-reg').value=regs().includes(txr)?txr:'all';
+}
+function render(){
+  if(!S.ready)return;
+  if(view==='dashboard')renderDash();
+  else if(view==='kassa'){renderTiles();renderCart()}
+  else if(view==='producten')renderStock();
+  else if(view==='transacties')renderTx();
+  else if(view==='instellingen')renderSettings();
+}
+
+/* ---------- Statistiek ---------- */
+const SIZE_ORDER=['XXS','XS','S','M','L','XL','XXL','2XL','3XL','4XL'];
+function stats(list){
+  const sales=list.filter(s=>!isRefund(s)),refs=list.filter(isRefund);
+  const vat=(+S.settings.vat||0)/100;
+  const net=sum(list,s=>+s.total);
+  const gross=sum(sales,s=>+s.total);
+  const refundAmt=-sum(refs,s=>+s.total);
+  const items=sum(list,s=>sign(s)*sum(s.items,i=>i.qty));
+  const soldItems=sum(sales,s=>sum(s.items,i=>i.qty));
+  const retItems=sum(refs,s=>sum(s.items,i=>i.qty));
+  const cost=sum(list,s=>sign(s)*sum(s.items,i=>(+i.cost||0)*i.qty));
+  const disc=sum(sales,s=>+s.discount);
+  const netEx=net/(1+vat);
+  return {sales,refs,net,gross,refundAmt,items,soldItems,retItems,cost,disc,tx:sales.length,netEx,vatAmt:net-netEx,margin:netEx-cost,avg:sales.length?gross/sales.length:0,ipb:sales.length?soldItems/sales.length:0};
+}
+function bounds(r){
+  const now=Date.now(),sod=startOfDay(now);
+  if(r==='today')return {from:sod,to:now,pFrom:sod-864e5,pTo:now-864e5,pl:'gisteren',label:'Vandaag'};
+  if(r==='7d')return {from:sod-6*864e5,to:now,pFrom:sod-13*864e5,pTo:sod-6*864e5,pl:'vorige 7 dagen',label:'Afgelopen 7 dagen'};
+  return {from:0,to:now,label:'Alles'};
+}
+function buildDash(){
+  const b=bounds(range);
+  const inReg=s=>dashReg==='all'||s.register===dashReg;
+  const list=S.sales.filter(s=>s.ts>=b.from&&s.ts<=b.to&&inReg(s));
+  const prev=b.pFrom!=null?S.sales.filter(s=>s.ts>=b.pFrom&&s.ts<b.pTo&&inReg(s)):null;
+  const st=stats(list),ps=prev?stats(prev):null;
+  // tijdreeks
+  const time=[];let unit;
+  if(range==='today'){
+    unit='uur';const sod=startOfDay(Date.now());
+    const cur=new Array(24).fill(0),ctx=new Array(24).fill(0),pv=new Array(24).fill(0);
+    list.forEach(s=>{const h=new Date(s.ts).getHours();cur[h]+=+s.total;if(!isRefund(s))ctx[h]++});
+    S.sales.filter(s=>s.ts>=sod-864e5&&s.ts<sod&&inReg(s)).forEach(s=>pv[new Date(s.ts).getHours()]+=+s.total);
+    const act=h=>cur[h]||pv[h];
+    let a=[...Array(24).keys()].find(act),z=[...Array(24).keys()].reverse().find(act);
+    const nh=new Date().getHours();if(a==null){a=Math.min(10,nh);z=nh}a=Math.min(a,nh);z=Math.max(z,nh);
+    for(let h=a;h<=z;h++)time.push({label:String(h).padStart(2,'0')+':00',net:round2(cur[h]),tx:ctx[h],prev:round2(pv[h])});
+  }else{
+    unit='dag';const base=startOfDay(Date.now());
+    const first=list.length?Math.min(...list.map(s=>s.ts)):Date.now();
+    const days=range==='7d'?7:Math.max(1,Math.min(90,Math.round((base-startOfDay(first))/864e5)+1));
+    for(let i=days-1;i>=0;i--){
+      const d=base-i*864e5,ds=list.filter(s=>s.ts>=d&&s.ts<d+864e5);
+      const row={label:new Date(d).toLocaleDateString('nl-NL',{weekday:'short',day:'numeric',month:'short'}),net:round2(sum(ds,s=>+s.total)),tx:ds.filter(s=>!isRefund(s)).length};
+      if(range==='7d')row.prev=round2(sum(S.sales.filter(s=>s.ts>=d-7*864e5&&s.ts<d-6*864e5&&inReg(s)),s=>+s.total));
+      time.push(row);
+    }
+  }
+  // per categorie / product / kassa / methode / maat
+  const byCat={},byPid={},byName={},byReg={},byMethod={},bySize={};
+  list.forEach(s=>{
+    const sg=sign(s);
+    const r=byReg[s.register]=byReg[s.register]||{tx:0,net:0,refunds:0,Pin:0,Contant:0,QR:0};
+    r.net+=+s.total;if(isRefund(s))r.refunds+=-s.total;else r.tx++;
+    if(s.method!=='Omruil'){const amt=isRefund(s)?+s.total:(s.paid!=null?+s.paid:+s.total);byMethod[s.method]=(byMethod[s.method]||0)+amt;if(r[s.method]!=null)r[s.method]+=amt}
+    s.items.forEach(i=>{
+      const rev=sg*unitOf(s,i)*i.qty,c=i.category||'Overig';
+      const bc=byCat[c]=byCat[c]||{qty:0,rev:0};bc.qty+=sg*i.qty;bc.rev+=rev;
+      const bp=byPid[i.pid]=byPid[i.pid]||{name:i.name,variant:i.variant,sku:i.sku,category:c,sold:0,returned:0,rev:0,cost:0};
+      if(isRefund(s))bp.returned+=i.qty;else bp.sold+=i.qty;bp.rev+=rev;bp.cost+=sg*(+i.cost||0)*i.qty;
+      const bn=byName[i.name]=byName[i.name]||{qty:0,rev:0};bn.qty+=sg*i.qty;bn.rev+=rev;
+      const sz=String(i.variant||'').toUpperCase();if(SIZE_ORDER.includes(sz))bySize[sz]=(bySize[sz]||0)+sg*i.qty;
+    });
+  });
+  // prognose: laatste 7 dagen, alle kassa's (voorraad is gedeeld)
+  const since=Date.now()-7*864e5,vel={};
+  S.sales.filter(s=>s.ts>=since).forEach(s=>s.items.forEach(i=>{vel[i.pid]=(vel[i.pid]||0)+sign(s)*i.qty}));
+  const forecast=S.products.map(p=>{const v=Math.max(0,vel[p.id]||0)/7;return {p,perDay:v,days:v>0?(Math.max(0,+p.stock||0))/v:Infinity}}).filter(x=>x.perDay>0).sort((a,b)=>a.days-b.days);
+  const low=S.products.filter(p=>stockState(p)!=='ok').sort((a,b)=>(+a.stock||0)-(+b.stock||0));
+  return {b,list,st,ps,time,unit,byCat,byPid,byName,byReg,byMethod,bySize,forecast,low,recent:S.sales.filter(inReg).slice(0,8)};
+}
+function delta(cur,prev,label){
+  if(prev==null)return '';
+  if(!prev)return cur?`<span class="delta up">Nieuw</span> t.o.v. ${label}`:'';
+  const p=Math.round((cur-prev)/Math.abs(prev)*100);
+  return `<span class="delta ${p>=0?'up':'down'}">${p>=0?'▲':'▼'} ${Math.abs(p)}%</span> t.o.v. ${label}`;
+}
+
+/* ---------- Dashboard ---------- */
+bindSeg($('#d-range'),'r',v=>{range=v;renderDash()});
+$('#d-reg').addEventListener('change',e=>{dashReg=e.target.value;renderDash()});
+function mkChart(id,cfg){if(charts[id])charts[id].destroy();if(!window.Chart)return;charts[id]=new Chart(document.getElementById(id),cfg)}
+function renderDash(){
+  const D=buildDash(),st=D.st,ps=D.ps,pl=D.b.pl;
+  $('#k-rev').textContent=eur(st.net);
+  $('#k-rev-d').innerHTML=ps?delta(st.net,ps.net,pl):'';
+  $('#k-rev-ex').textContent='Excl. btw '+eur(st.netEx);
+  $('#k-margin').textContent=st.cost>0?'Brutomarge '+eur(st.margin)+' ('+(st.netEx?Math.round(st.margin/st.netEx*100):0)+'%)':'Voeg inkoopprijzen toe voor marge';
+  $('#k-tx').textContent=num(st.tx);
+  $('#k-tx-h').innerHTML=ps?delta(st.tx,ps.tx,pl):'Sinds de start';
+  $('#k-avg').textContent=eur(st.avg);
+  $('#k-avg-h').innerHTML=ps&&st.tx?delta(st.avg,ps.avg,pl):st.tx?st.ipb.toFixed(1).replace('.',',')+' items per bon':'Nog geen verkopen';
+  $('#k-items').textContent=num(st.items);
+  $('#k-items-h').innerHTML=ps?delta(st.items,ps.items,pl):st.tx?st.ipb.toFixed(1).replace('.',',')+' items per bon':'—';
+  $('#k-ret').textContent=eur(st.refundAmt);
+  $('#k-ret-h').textContent=st.refs.length?st.refs.length+' retouren · '+num(st.retItems)+' items':'Geen retouren';
+  $('#k-disc').textContent=eur(st.disc);
+  $('#k-disc-h').textContent=st.disc?Math.round(st.disc/(st.gross+st.disc)*100)+'% van de brutoverkoop':'Geen korting gegeven';
+  const sv=sum(S.products,p=>(+p.price||0)*Math.max(0,+p.stock||0));
+  $('#k-stock').textContent=eur0(sv);
+  $('#k-stock-h').textContent=num(sum(S.products,p=>Math.max(0,+p.stock||0)))+' stuks op voorraad';
+  $('#d-sub').textContent=S.sales.length?(S.settings.event||'Overzicht')+' · '+D.b.label.toLowerCase()+(dashReg!=='all'?' · '+dashReg:''):(S.settings.event||'Overzicht')+'. Nog geen verkopen: start in de kassa of laad voorbeelddata via Instellingen.';
+
+  const ink=cssVar('--ink'),muted=cssVar('--muted'),line=cssVar('--line'),brand=cssVar('--brand'),accent=cssVar('--accent');
+  if(window.Chart){Chart.defaults.font.family=cssVar('--body');Chart.defaults.color=muted}
+  $('#c-rev-l').textContent=(D.unit==='uur'?'per uur':'per dag')+(range!=='all'?' · lijn = '+pl:'');
+  const ds=[{type:'bar',label:D.b.label,data:D.time.map(t=>t.net),backgroundColor:brand,borderRadius:6,maxBarThickness:38,order:2}];
+  if(range!=='all')ds.push({type:'line',label:pl[0].toUpperCase()+pl.slice(1),data:D.time.map(t=>t.prev||0),borderColor:muted,borderDash:[5,4],borderWidth:2,pointRadius:0,tension:.35,order:1});
+  mkChart('c-rev',{data:{labels:D.time.map(t=>t.label),datasets:ds},options:{maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:range!=='all',position:'top',align:'end',labels:{boxWidth:10,boxHeight:10,usePointStyle:true,color:ink}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+eur(c.raw)}}},scales:{x:{grid:{display:false},ticks:{color:muted}},y:{grid:{color:line},border:{display:false},ticks:{color:muted,callback:v=>eur0(v)}}}}});
+
+  const ck=Object.keys(D.byCat).filter(k=>D.byCat[k].rev>0).sort((a,b)=>D.byCat[b].rev-D.byCat[a].rev);
+  mkChart('c-cat',{type:'doughnut',data:{labels:ck.length?ck:['Geen verkopen'],datasets:[{data:ck.length?ck.map(k=>round2(D.byCat[k].rev)):[1],backgroundColor:ck.length?ck.map(catColor):[line],borderWidth:0}]},options:{maintainAspectRatio:false,cutout:'66%',plugins:{legend:{position:'bottom',labels:{boxWidth:10,boxHeight:10,usePointStyle:true,color:ink,padding:12}},tooltip:{enabled:!!ck.length,callbacks:{label:c=>c.label+': '+eur(c.raw)}}}}});
+
+  const top=Object.entries(D.byName).filter(x=>x[1].rev>0).sort((a,b)=>b[1].rev-a[1].rev).slice(0,6),mx=top.length?top[0][1].rev:1;
+  $('#d-top').innerHTML=top.length?top.map(([n,v])=>`<div class="bar-row"><span class="nm">${esc(n)} <small>${num(v.qty)}×</small></span><span class="am">${eur0(v.rev)}</span><div class="bar-track"><div class="bar-fill" style="width:${v.rev/mx*100}%"></div></div></div>`).join(''):'<div class="empty">Nog geen verkopen in deze periode.</div>';
+
+  const rk=Object.entries(D.byReg).sort((a,b)=>b[1].net-a[1].net),rmx=rk.length?Math.max(1,rk[0][1].net):1;
+  $('#d-reg-list').innerHTML=rk.length?rk.map(([n,v])=>`<div class="bar-row"><span class="nm">${esc(n)} <small>${v.tx} bonnen</small></span><span class="am">${eur0(v.net)}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.max(0,v.net)/rmx*100}%;background:${accent}"></div></div></div>`).join(''):'<div class="empty">Nog geen verkopen in deze periode.</div>';
+  const mk=Object.keys(D.byMethod);
+  mkChart('c-pay',{type:'bar',data:{labels:mk.length?mk:['—'],datasets:[{data:mk.length?mk.map(k=>round2(D.byMethod[k])):[0],backgroundColor:[brand,accent,'#5ED3A4'],borderRadius:6,barThickness:16}]},options:{indexAxis:'y',maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>eur(c.raw)}}},scales:{x:{display:false},y:{grid:{display:false},border:{display:false},ticks:{color:ink}}}}});
+
+  $('#d-low-n').textContent=D.low.length?D.low.length+' artikelen':'';
+  $('#d-low').innerHTML=D.low.length?D.low.slice(0,7).map(p=>`<div class="list-row"><span><b style="font-weight:600">${esc(p.name)}</b> <span class="sku">${esc(p.variant||'')}</span></span>${stockBadge(p)}</div>`).join('')+(D.low.length>7?`<div class="list-row"><button class="btn ghost" style="padding:0;color:var(--brand)" data-go-low>Bekijk alle ${D.low.length}</button><span></span></div>`:''):'<div class="empty">Alles ruim op voorraad.</div>';
+  const gl=$('[data-go-low]');if(gl)gl.addEventListener('click',()=>{tFilter='low';stTab='list';go('producten')});
+
+  const sz=SIZE_ORDER.filter(s=>D.bySize[s]);
+  mkChart('c-size',{type:'bar',data:{labels:sz.length?sz:['—'],datasets:[{data:sz.length?sz.map(s=>D.bySize[s]):[0],backgroundColor:accent,borderRadius:6,maxBarThickness:34}]},options:{maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>num(c.raw)+' stuks'+(sz.length?' ('+Math.round(c.raw/sum(sz,s=>D.bySize[s])*100)+'%)':'')}}},scales:{x:{grid:{display:false},ticks:{color:ink,font:{weight:'700'}}},y:{grid:{color:line},border:{display:false},ticks:{color:muted,precision:0}}}}});
+
+  $('#d-fc').innerHTML=D.forecast.length?D.forecast.slice(0,7).map(f=>{const d=f.days,cls=d<2?'bad':d<5?'warn':'ok';const txt=(+f.p.stock||0)<=0?'Op':d===Infinity?'—':d<1?'< 1 dag':d>60?'> 60 dagen':'≈ '+d.toFixed(d<10?1:0).replace('.',',')+' dagen';return `<div class="list-row"><span><b style="font-weight:600">${esc(f.p.name)}</b> <span class="sku">${esc(f.p.variant||'')} · ${f.perDay.toFixed(1).replace('.',',')}/dag</span></span><span class="badge ${cls}">${txt}</span></div>`}).join(''):'<div class="empty">Nog te weinig verkopen voor een prognose.</div>';
+
+  $('#d-feed').innerHTML=D.recent.length?D.recent.map(s=>`<div class="list-row" style="cursor:pointer" data-sale="${esc(s.id)}"><span class="t">${tm(s.ts)}</span><span class="m">${isRefund(s)?'<span class="badge bad">Retour</span> ':''}${esc(s.items.map(i=>i.qty+'× '+i.name).join(', '))}</span><b class="${isRefund(s)?'neg':''}" style="font-variant-numeric:tabular-nums">${eur(s.total)}</b></div>`).join(''):'<div class="empty">Nog geen bonnen.</div>';
+}
+$('#d-feed').addEventListener('click',e=>{const r=e.target.closest('[data-sale]');if(!r)return;const s=S.sales.find(x=>x.id===r.dataset.sale);if(s)showReceipt(s,false)});
+function stockBadge(p){const st=stockState(p),s=+p.stock||0;return st==='out'?'<span class="badge bad">Uitverkocht</span>':st==='low'?`<span class="badge warn">Nog ${num(s)}</span>`:'<span class="badge ok">Op voorraad</span>'}
+
+$('#d-export').addEventListener('click',()=>{
+  if(!window.XLSX){toast('De Excel-module is niet geladen. Controleer je verbinding.','bad');return}
+  const D=buildDash(),st=D.st,ps=D.ps;
+  const wb=XLSX.utils.book_new();
+  const pct=(a,b)=>b?round2((a-b)/Math.abs(b)*100):'';
+  const sumRows=[['Dashboardrapport',S.settings.event||''],['Periode',D.b.label],['Kassa',dashReg==='all'?'Alle kassa’s':dashReg],['Gemaakt op',new Date().toLocaleString('nl-NL')],[],
+    ['Kengetal','Waarde',ps?'Vorige periode ('+D.b.pl+')':'',ps?'Verschil %':''],
+    ['Netto omzet incl. btw',round2(st.net),ps?round2(ps.net):'',ps?pct(st.net,ps.net):''],
+    ['Netto omzet excl. btw',round2(st.netEx),ps?round2(ps.netEx):'',ps?pct(st.netEx,ps.netEx):''],
+    ['Btw',round2(st.vatAmt),ps?round2(ps.vatAmt):'',''],
+    ['Brutoverkoop incl. btw',round2(st.gross),ps?round2(ps.gross):'',ps?pct(st.gross,ps.gross):''],
+    ['Retouren',round2(st.refundAmt),ps?round2(ps.refundAmt):'',''],
+    ['Aantal retouren',st.refs.length,ps?ps.refs.length:'',''],
+    ['Korting gegeven',round2(st.disc),ps?round2(ps.disc):'',''],
+    ['Inkoopwaarde verkocht',round2(st.cost),ps?round2(ps.cost):'',''],
+    ['Brutomarge excl. btw',round2(st.margin),ps?round2(ps.margin):'',ps?pct(st.margin,ps.margin):''],
+    ['Transacties',st.tx,ps?ps.tx:'',ps?pct(st.tx,ps.tx):''],
+    ['Gemiddelde bon',round2(st.avg),ps?round2(ps.avg):'',ps?pct(st.avg,ps.avg):''],
+    ['Items verkocht (netto)',st.items,ps?ps.items:'',ps?pct(st.items,ps.items):''],
+    ['Items per bon',round2(st.ipb),ps?round2(ps.ipb):'',''],
+    ['Voorraadwaarde (verkoop)',round2(sum(S.products,p=>(+p.price||0)*Math.max(0,+p.stock||0))),'',''],
+    ['Voorraad in stuks',sum(S.products,p=>Math.max(0,+p.stock||0)),'','']];
+  XLSX.utils.book_append_sheet(wb,sheet(sumRows,[28,16,24,12]),'Samenvatting');
+  XLSX.utils.book_append_sheet(wb,sheet([[D.unit==='uur'?'Uur':'Dag','Netto omzet','Transacties',range!=='all'?'Omzet '+D.b.pl:''],...D.time.map(t=>[t.label,t.net,t.tx,range!=='all'?t.prev||0:''])],[18,14,12,18]),'Omzetverloop');
+  const totCat=sum(Object.values(D.byCat),c=>c.rev);
+  XLSX.utils.book_append_sheet(wb,sheet([['Categorie','Aantal (netto)','Omzet','Aandeel %'],...Object.entries(D.byCat).sort((a,b)=>b[1].rev-a[1].rev).map(([k,v])=>[k,v.qty,round2(v.rev),totCat?round2(v.rev/totCat*100):0])],[18,14,12,10]),'Categorieën');
+  const prows=S.products.map(p=>{const a=D.byPid[p.id]||{sold:0,returned:0,rev:0,cost:0};const net=a.sold-a.returned,stock=Math.max(0,+p.stock||0);return [p.sku,p.name,p.variant||'',p.category||'Overig',a.sold,a.returned,net,round2(a.rev),round2(a.rev/(1+S.settings.vat/100)-a.cost),stock,net+stock>0?round2(net/(net+stock)*100):0]});
+  Object.entries(D.byPid).filter(([id])=>!pById(id)).forEach(([,a])=>prows.push([a.sku,a.name+' (verwijderd)',a.variant||'',a.category,a.sold,a.returned,a.sold-a.returned,round2(a.rev),round2(a.rev/(1+S.settings.vat/100)-a.cost),0,'']));
+  prows.sort((a,b)=>b[7]-a[7]);
+  XLSX.utils.book_append_sheet(wb,sheet([['SKU','Product','Variant','Categorie','Verkocht','Retour','Netto','Omzet incl. btw','Marge excl. btw','Voorraad','Doorverkoop %'],...prows],[14,24,10,14,10,8,8,14,14,10,13]),'Producten');
+  XLSX.utils.book_append_sheet(wb,sheet([['Kassa','Bonnen','Netto omzet','Retouren','Pin','Contant','QR'],...Object.entries(D.byReg).map(([k,v])=>[k,v.tx,round2(v.net),round2(v.refunds),round2(v.Pin),round2(v.Contant),round2(v.QR)])],[16,10,14,12,12,12,12]),'Kassa’s'.replace('’',''));
+  XLSX.utils.book_append_sheet(wb,sheet([['Betaalmethode','Netto bedrag'],...Object.entries(D.byMethod).map(([k,v])=>[k,round2(v)])],[16,14]),'Betaalmethodes');
+  const sz=SIZE_ORDER.filter(s=>D.bySize[s]),szt=sum(sz,s=>D.bySize[s]);
+  XLSX.utils.book_append_sheet(wb,sheet([['Maat','Stuks (netto)','Aandeel %'],...sz.map(s=>[s,D.bySize[s],szt?round2(D.bySize[s]/szt*100):0])],[10,14,10]),'Maten');
+  XLSX.utils.book_append_sheet(wb,sheet([['SKU','Product','Variant','Voorraad','Verkoop per dag (7d)','Dagen voorraad'],...D.forecast.map(f=>[f.p.sku,f.p.name,f.p.variant||'',+f.p.stock||0,round2(f.perDay),f.days===Infinity?'':round2(f.days)])],[14,24,10,10,20,14]),'Voorraadprognose');
+  XLSX.utils.book_append_sheet(wb,sheet([['Retourbon','Datum','Kassa','Originele bon','Reden','Terug op voorraad','Methode','Product','Variant','Aantal','Bedrag'],...st.refs.flatMap(r=>r.items.map(i=>[r.receiptNo,new Date(r.ts).toLocaleString('nl-NL'),r.register,r.refReceipt||'Zonder bon',r.reason||'',r.restock?'Ja':'Nee',r.method,i.name,i.variant,i.qty,round2(unitOf(r,i)*i.qty)]))],[14,18,14,14,18,16,10,22,10,8,10]),'Retouren');
+  saveWorkbook(wb,'dashboard-'+slug(S.settings.event)+'-'+range+'-'+stamp()+'.xlsx');
+});
+
+/* ---------- Kassa ---------- */
+$('#p-reg').addEventListener('change',e=>{register=e.target.value;lsSet('register',register);renderChrome()});
+$('#p-search').addEventListener('input',renderTiles);
+$('#p-search').addEventListener('keydown',e=>{
+  if(e.key!=='Enter')return;
+  const q=e.target.value.trim().toLowerCase();if(!q)return;
+  if(/^ret-|^[a-z]{1,3}-\d{6}$/i.test(q)){const s=S.sales.find(x=>String(x.receiptNo).toLowerCase()===q);if(s){e.target.value='';showReceipt(s,false);return}}
+  const hit=S.products.find(p=>(p.barcode&&String(p.barcode).toLowerCase()===q)||(p.sku&&String(p.sku).toLowerCase()===q));
+  if(hit){addToCart(hit.id);e.target.value='';renderTiles()}
+  else{const g=groups();if(g.length===1)tileClick(g[0]);else toast('Geen product met deze barcode of SKU','bad')}
+});
+function groups(){
+  const q=$('#p-search').value.trim().toLowerCase(),m=new Map();
+  S.products.forEach(p=>{
+    if(posCat!=='Alles'&&(p.category||'Overig')!==posCat)return;
+    if(q&&![p.name,p.sku,p.barcode,p.variant,p.category].some(v=>v&&String(v).toLowerCase().includes(q)))return;
+    const k=(p.category||'')+'|'+p.name;
+    if(!m.has(k))m.set(k,{name:p.name,category:p.category||'Overig',items:[]});
+    m.get(k).items.push(p);
+  });
+  return [...m.values()].sort((a,b)=>a.category.localeCompare(b.category,'nl')||a.name.localeCompare(b.name,'nl'));
+}
+function sortVariants(a,b){const ia=SIZE_ORDER.indexOf(String(a.variant).toUpperCase()),ib=SIZE_ORDER.indexOf(String(b.variant).toUpperCase());if(ia>-1&&ib>-1)return ia-ib;return String(a.variant||'').localeCompare(String(b.variant||''),'nl',{numeric:true})}
+function renderTiles(){
+  const cs=['Alles',...cats()];if(!cs.includes(posCat))posCat='Alles';
+  $('#p-cats').innerHTML=cs.map(c=>`<button class="chip" aria-pressed="${c===posCat}" data-c="${esc(c)}">${esc(c)}</button>`).join('');
+  const g=groups();
+  if(!S.products.length){$('#p-tiles').innerHTML=`<div class="panel" style="grid-column:1/-1"><h2>Nog geen producten</h2><p style="margin:0 0 14px;color:var(--muted)">Importeer je assortiment uit Excel of laad voorbeelddata om de kassa te proberen.</p><div class="actions"><button class="btn primary" data-act="import">Excel importeren</button><button class="btn" data-act="demo">Voorbeelddata laden</button></div></div>`;return}
+  if(!g.length){$('#p-tiles').innerHTML='<div class="empty">Geen producten gevonden.</div>';return}
+  const ref=posMode==='refund';
+  $('#p-tiles').innerHTML=g.map((x,i)=>{
+    const prices=x.items.map(p=>+p.price||0),mn=Math.min(...prices),mx=Math.max(...prices);
+    const st=sum(x.items,p=>Math.max(0,+p.stock||0)),out=st<=0,low=!out&&x.items.some(p=>stockState(p)!=='ok');
+    const vs=x.items.length>1?x.items.length+' varianten':(x.items[0].variant||'');
+    return `<button class="tile" data-g="${i}" ${out&&!ref?'disabled':''}><span class="swatch" style="background:${catColor(x.category)}">${esc(x.name.slice(0,2).toUpperCase())}</span><span class="tn">${esc(x.name)}</span><span class="tv">${esc(vs)}</span><span class="tp">${mn===mx?eur(mn):eur(mn)+'+'}<span class="ts ${out?'out':low?'low':''}">${out?'Op':num(st)}</span></span></button>`;
+  }).join('');
+  $('#p-tiles')._groups=g;
+}
+$('#p-cats').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;posCat=b.dataset.c;renderTiles()});
+$('#p-tiles').addEventListener('click',e=>{
+  const a=e.target.closest('[data-act]');if(a){if(a.dataset.act==='import')$('#file-in').click();else loadDemo();return}
+  const t=e.target.closest('.tile');if(!t)return;tileClick($('#p-tiles')._groups[+t.dataset.g]);
+});
+function tileClick(g){
+  if(g.items.length===1){addToCart(g.items[0].id);return}
+  const vs=[...g.items].sort(sortVariants),ref=posMode==='refund';
+  openModal(`<h3>${esc(g.name)}</h3><p class="lead">${ref?'Welke variant brengt de klant terug?':'Kies een variant'}</p><div class="variants">${vs.map(p=>{const s=+p.stock||0;return `<button data-id="${esc(p.id)}" ${s<=0&&!ref?'disabled':''}>${esc(p.variant||'—')}<small>${s<=0?'Op':num(s)}${' · '+eur(p.price)}</small></button>`}).join('')}</div><div class="modal-foot"><button class="btn" data-close>Annuleren</button></div>`,
+  m=>{m.querySelector('.variants').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;addToCart(b.dataset.id);closeModal()});m.querySelector('[data-close]').addEventListener('click',closeModal)});
+}
+function inCart(pid){const l=cart.find(x=>x.pid===pid);return l?l.qty:0}
+function addToCart(pid,n=1){
+  const p=pById(pid);if(!p)return;
+  if(posMode==='sale'&&inCart(pid)+n>(+p.stock||0)){toast('Niet genoeg voorraad van '+p.name+(p.variant?' '+p.variant:''),'bad');return}
+  const l=cart.find(x=>x.pid===pid);if(l)l.qty+=n;else cart.push({pid,qty:n});
+  renderCart();
+}
+function totals(){
+  const lines=cart.map(l=>({...l,p:pById(l.pid)})).filter(l=>l.p);
+  const sub=round2(sum(lines,l=>(+l.p.price||0)*l.qty));
+  let d=0;if(discount&&posMode==='sale')d=discount.type==='pct'?sub*discount.value/100:Math.min(sub,discount.value);
+  d=round2(d);const total=round2(sub-d);
+  const cr=posMode==='sale'&&credit?credit.amount:0,toPay=round2(total-cr);
+  const vat=(+S.settings.vat||0)/100;
+  return {lines,sub,disc:d,total,credit:cr,toPay,vat:round2(total-total/(1+vat))};
+}
+const PAY_LABELS={sale:{Pin:'Pin',Contant:'Contant',QR:'QR / Tikkie'},refund:{Pin:'Terug op pin',Contant:'Contant terug',QR:'Omruilen'}};
+function renderCart(){
+  const t=totals(),ref=posMode==='refund';
+  $('#cart').classList.toggle('refund',ref);
+  $('#cart-title').textContent=ref?'Retour zonder bon':'Huidige bon';
+  $('#cart-mode').textContent=ref?'Terug naar verkoop':'Retour zonder bon';
+  $('#cart-park').hidden=ref;
+  $('#parked').innerHTML=ref?'':parked.map((p,i)=>`<button data-unpark="${i}">Geparkeerd ${tm(p.ts)} · ${eur(p.total)}</button>`).join('');
+  $('#cart-lines').innerHTML=t.lines.length?t.lines.map(l=>`<div class="line"><div><div class="ln">${esc(l.p.name)}</div><div class="lv">${esc(l.p.variant||'')} ${l.p.variant?'· ':''}${eur(l.p.price)}</div><div class="qty"><button data-q="-1" data-id="${esc(l.pid)}" aria-label="Eén minder">−</button><span>${l.qty}</span><button data-q="1" data-id="${esc(l.pid)}" aria-label="Eén meer">+</button></div></div><div class="lt ${ref?'neg':''}">${ref?'− ':''}${eur(l.p.price*l.qty)}</div></div>`).join(''):`<div class="empty" style="padding:30px 0;text-align:center">${ref?'Tik de producten aan die terugkomen.':'De bon is leeg.<br>Tik op een product om te beginnen.'}</div>`;
+  $('#s-sub').textContent=eur(t.sub);
+  $('#s-disc-row').hidden=ref;
+  $('#s-disc').textContent=t.disc?'− '+eur(t.disc):'—';
+  $('#disc-btn').textContent=discount?(discount.type==='pct'?'Korting '+discount.value+'%':'Korting '+eur(discount.value))+' wijzigen':'Korting toevoegen';
+  const cr=!ref&&credit;
+  $('#s-credit-row').hidden=!cr;
+  if(cr){$('#s-credit').textContent='− '+eur(credit.amount);$('#s-credit-ref').textContent=credit.receiptNo}
+  $('#s-vat').textContent=eur(t.vat);
+  const negc=cr&&t.toPay<0;
+  $('#s-total-l').textContent=ref?'Terug te betalen':negc?'Resterend tegoed':cr?'Nog te betalen':'Totaal';
+  $('#s-total').textContent=eur(ref?t.total:negc?-t.toPay:t.toPay);
+  $('#s-total').classList.toggle('neg',ref);
+  const neg=cr&&t.toPay<0;
+  $('#cart-hint').textContent=neg?'Het tegoed is '+eur(-t.toPay)+' hoger dan de bon. Voeg nog een product toe.':'';
+  $$('.pay button').forEach(b=>{b.disabled=!t.lines.length||neg;b.querySelector('.pl').textContent=PAY_LABELS[posMode][b.dataset.pay]});
+  const n=sum(t.lines,l=>l.qty);
+  $('#fab-n').textContent=(ref?'Retour (':'Bon (')+n+')';$('#fab-t').textContent=eur(ref?t.total:t.toPay);
+  $('#cart-fab').style.visibility=n&&view==='kassa'?'visible':'hidden';
+}
+$('#cart-lines').addEventListener('click',e=>{
+  const b=e.target.closest('[data-q]');if(!b)return;const l=cart.find(x=>x.pid===b.dataset.id);if(!l)return;
+  if(+b.dataset.q>0)addToCart(l.pid,1);else{l.qty--;if(l.qty<=0)cart=cart.filter(x=>x!==l);renderCart()}
+});
+$('#cart-clear').addEventListener('click',()=>{cart=[];discount=null;renderCart()});
+function setMode(m){posMode=m;cart=[];discount=null;renderTiles();renderCart()}
+$('#cart-mode').addEventListener('click',()=>{if(posMode==='sale'&&cart.length&&!confirm('De huidige bon wordt leeggemaakt. Doorgaan?'))return;setMode(posMode==='sale'?'refund':'sale')});
+$('#mode-exit').addEventListener('click',()=>setMode('sale'));
+$('#cart-park').addEventListener('click',()=>{
+  if(!cart.length){toast('Er staat niets op de bon om te parkeren','bad');return}
+  if(credit){toast('Een bon met omruiltegoed kun je niet parkeren','bad');return}
+  parked.push({ts:Date.now(),cart,discount,total:totals().total});lsSet('parked',JSON.stringify(parked));
+  cart=[];discount=null;renderCart();toast('Bon geparkeerd');
+});
+$('#parked').addEventListener('click',e=>{
+  const b=e.target.closest('[data-unpark]');if(!b)return;
+  if(cart.length){toast('Reken eerst de huidige bon af of parkeer hem','bad');return}
+  const p=parked.splice(+b.dataset.unpark,1)[0];lsSet('parked',JSON.stringify(parked));
+  cart=p.cart.filter(l=>pById(l.pid));discount=p.discount;renderCart();toast('Geparkeerde bon teruggezet');
+});
+$('#cart-fab').addEventListener('click',()=>$('#cart').scrollIntoView({behavior:'smooth'}));
+$('#credit-rm').addEventListener('click',async()=>{
+  if(!credit)return;
+  if(!confirm('Tegoed van '+eur(credit.amount)+' verwijderen? Het wordt geregistreerd als contant terugbetaald aan de klant.'))return;
+  try{await api.updateSale(credit.refundId,{method:'Contant'});credit=null;renderCart();toast('Tegoed omgezet naar contante terugbetaling')}catch(e){toast('Aanpassen mislukt: '+e.message,'bad')}
+});
+$('#disc-btn').addEventListener('click',()=>{
+  openModal(`<h3>Korting</h3><p class="lead">Geldt voor de hele bon</p>
+    <div class="seg" id="dt" role="group"><button data-t="pct" aria-pressed="${!discount||discount.type==='pct'}">Percentage</button><button data-t="eur" aria-pressed="${!!(discount&&discount.type==='eur')}">Bedrag</button></div>
+    <div class="cash-quick">${[5,10,15,20].map(v=>`<button class="btn" data-v="${v}">${v}%</button>`).join('')}</div>
+    <div class="field"><label for="dv">Waarde</label><input class="input" id="dv" type="number" min="0" step="0.5" value="${discount?discount.value:''}" autofocus></div>
+    <div class="modal-foot"><button class="btn danger" data-rm>Korting verwijderen</button><button class="btn" data-close>Annuleren</button><button class="btn primary" data-ok>Toepassen</button></div>`,
+  m=>{let type=discount?discount.type:'pct';
+    bindSeg(m.querySelector('#dt'),'t',v=>type=v);
+    m.querySelector('.cash-quick').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;discount={type:'pct',value:+b.dataset.v};closeModal();renderCart()});
+    m.querySelector('[data-rm]').addEventListener('click',()=>{discount=null;closeModal();renderCart()});
+    m.querySelector('[data-close]').addEventListener('click',closeModal);
+    m.querySelector('[data-ok]').addEventListener('click',()=>{const v=parseFloat(m.querySelector('#dv').value);if(!(v>0))discount=null;else{if(type==='pct'&&v>100){toast('Een percentage kan maximaal 100 zijn','bad');return}discount={type,value:v}}closeModal();renderCart()});
+  });
+});
+$$('.pay button').forEach(b=>b.addEventListener('click',()=>{
+  const t=totals();if(!t.lines.length)return;
+  if(posMode==='refund'){
+    const method={Pin:'Pin',Contant:'Contant',QR:'Omruil'}[b.dataset.pay];
+    refundModal({sale:null,method,items:t.lines.map(l=>({pid:l.pid,sku:l.p.sku||'',name:l.p.name,variant:l.p.variant||'',category:l.p.category||'Overig',price:+l.p.price||0,unit:+l.p.price||0,cost:+l.p.cost||0,max:l.qty,qty:l.qty}))});
+    return;
+  }
+  const method=b.dataset.pay;
+  if(method==='Contant'&&t.toPay>0){
+    const sugg=[t.toPay,Math.ceil(t.toPay/10)*10,Math.ceil(t.toPay/20)*20,Math.ceil(t.toPay/50)*50].filter((v,i,a)=>a.indexOf(v)===i).slice(0,4);
+    openModal(`<h3>Contant afrekenen</h3><p class="lead">Te betalen: <b>${eur(t.toPay)}</b></p>
+      <div class="cash-quick">${sugg.map(v=>`<button class="btn" data-v="${v}">${eur(v)}</button>`).join('')}</div>
+      <div class="field"><label for="cr">Ontvangen bedrag</label><input class="input" id="cr" type="number" min="0" step="0.05" autofocus></div>
+      <p id="chg" style="font:700 20px var(--display);margin:14px 0 0">Wisselgeld: —</p>
+      <div class="modal-foot"><button class="btn" data-close>Annuleren</button><button class="btn accent" data-ok>Afrekenen</button></div>`,
+    m=>{const inp=m.querySelector('#cr'),upd=()=>{const r=parseFloat(inp.value);m.querySelector('#chg').textContent='Wisselgeld: '+(r>=t.toPay?eur(r-t.toPay):'—')};
+      inp.addEventListener('input',upd);
+      m.querySelector('.cash-quick').addEventListener('click',e=>{const x=e.target.closest('[data-v]');if(!x)return;inp.value=x.dataset.v;upd()});
+      m.querySelector('[data-close]').addEventListener('click',closeModal);
+      m.querySelector('[data-ok]').addEventListener('click',()=>{const r=inp.value===''?t.toPay:parseFloat(inp.value);if(!(r>=t.toPay)){toast('Het ontvangen bedrag is lager dan het totaal','bad');return}checkout(method,r)});
+      inp.addEventListener('keydown',e=>{if(e.key==='Enter')m.querySelector('[data-ok]').click()});
+    });
+  }else checkout(method);
+}));
+let busy=false;
+async function checkout(method,received){
+  if(busy)return;busy=true;
+  const t=totals();
+  for(const l of t.lines){if(l.qty>(+l.p.stock||0)){toast('Niet genoeg voorraad van '+l.p.name,'bad');busy=false;return}}
+  const now=Date.now();
+  const sale={id:uid(),type:'sale',ts:now,register,method,
+    receiptNo:(register||'K').replace(/[^A-Za-z0-9]/g,'').slice(0,3).toUpperCase()+'-'+String(now).slice(-6),
+    items:t.lines.map(l=>({pid:l.pid,sku:l.p.sku||'',name:l.p.name,variant:l.p.variant||'',category:l.p.category||'Overig',price:+l.p.price||0,cost:+l.p.cost||0,qty:l.qty})),
+    subtotal:t.sub,discount:t.disc,total:t.total,paid:t.toPay};
+  if(t.credit){sale.credit=t.credit;sale.creditRef=credit.receiptNo}
+  if(received!=null)sale.received=round2(received);
+  try{
+    await api.addSales([sale]);
+    await Promise.all(t.lines.map(l=>api.setStock(l.pid,Math.max(0,(+l.p.stock||0)-l.qty))));
+    api.addMoves(t.lines.map(l=>mv(l.p,-l.qty,Math.max(0,(+l.p.stock||0)-l.qty),'Verkoop',sale.receiptNo)));
+  }catch(e){toast('Afrekenen mislukt: '+(e&&e.message||'probeer opnieuw'),'bad');busy=false;return}
+  busy=false;cart=[];discount=null;credit=null;renderCart();showReceipt(sale,true);
+}
+
+/* ---------- Retouren ---------- */
+const REASONS=['Verkeerde maat','Defect of beschadigd','Klant ontevreden','Verkeerd aangeslagen','Anders'];
+function startReturn(sale){
+  if(isRefund(sale))return;
+  const f=sale.subtotal?(+sale.total||0)/(+sale.subtotal):1;
+  const items=sale.items.map(i=>{const max=i.qty-returnedQty(sale.id,i.pid);return {...i,unit:round2(i.price*f),max,qty:0,done:i.qty-max}});
+  if(!items.some(i=>i.max>0)){toast('Alle producten van deze bon zijn al geretourneerd','bad');return}
+  if(items.filter(i=>i.max>0).length===1){const it=items.find(i=>i.max>0);if(it.max===1)it.qty=1}
+  const days=(Date.now()-sale.ts)/864e5,lim=+S.settings.retDays||0;
+  refundModal({sale,items,method:sale.method==='Omruil'?'Contant':sale.method,warn:lim&&days>lim?'Deze bon is '+Math.floor(days)+' dagen oud. De retourtermijn is '+lim+' dagen.':''});
+}
+function refundModal(src){
+  const s=src.sale,items=src.items;
+  const methods=[...new Set([src.method,'Pin','Contant','QR','Omruil'].filter(Boolean))].filter(m=>s||m!=='QR');
+  let method=src.method||methods[0],reason=REASONS[0],restock=true;
+  const amount=()=>round2(sum(items,i=>i.unit*i.qty));
+  const mLabel=m=>m==='Omruil'?'Omruilen (tegoed)':m==='QR'?'QR / Tikkie':m;
+  openModal(`<h3>${s?'Retour van bon '+esc(s.receiptNo):'Retour zonder bon'}</h3>
+    <p class="lead">${s?esc(s.register)+' · '+dt(s.ts)+' · betaald met '+esc(s.method):'Producten die de klant terugbrengt zonder kassabon'}</p>
+    ${src.warn?`<div class="badge warn" style="display:block;padding:10px 12px;border-radius:10px;margin-bottom:12px;font-size:13px">${esc(src.warn)}</div>`:''}
+    <div id="rf-items">${items.map((i,k)=>`<div class="ret-row"><div><b style="font-weight:600">${esc(i.name)}</b> <span class="sku">${esc(i.variant||'')} · ${eur(i.unit)} per stuk${s&&i.unit!==i.price?' (na korting)':''}</span>${i.done?`<span class="done">${i.done} al geretourneerd</span>`:''}</div>
+      ${s?`<span class="stepper"><button data-k="${k}" data-d="-1" aria-label="Minder">−</button><b id="rq-${k}">${i.qty}</b><button data-k="${k}" data-d="1" aria-label="Meer" ${i.max<=0?'disabled':''}>+</button></span>`:`<b>${i.qty}×</b>`}
+      <b id="ra-${k}" style="min-width:76px;text-align:right">${eur(i.unit*i.qty)}</b></div>`).join('')}</div>
+    <div class="form-grid" style="margin-top:16px">
+      <div class="field"><label for="rf-reason">Reden</label><select class="input" id="rf-reason">${REASONS.map(r=>`<option>${r}</option>`).join('')}</select></div>
+      <div class="field"><label>&nbsp;</label><label class="checkline"><input type="checkbox" id="rf-restock" checked> Terugboeken op voorraad</label></div>
+      <div class="field full"><label>Terugbetalen via</label><div class="seg" id="rf-method" role="group">${methods.map(m=>`<button data-m="${m}" aria-pressed="${m===method}">${mLabel(m)}</button>`).join('')}</div></div>
+    </div>
+    <div class="modal-foot"><button class="btn" data-close>Annuleren</button><button class="btn primary" data-ok id="rf-ok"></button></div>`,
+  m=>{
+    const upd=()=>{const a=amount();items.forEach((i,k)=>{const q=m.querySelector('#rq-'+k);if(q)q.textContent=i.qty;m.querySelector('#ra-'+k).textContent=eur(i.unit*i.qty)});const ok=m.querySelector('#rf-ok');ok.disabled=a<=0&&!items.some(i=>i.qty>0);ok.textContent=method==='Omruil'?'Tegoed '+eur(a)+' op nieuwe bon':eur(a)+' terugbetalen'};
+    m.querySelector('#rf-items').addEventListener('click',e=>{const b=e.target.closest('[data-k]');if(!b)return;const i=items[+b.dataset.k];i.qty=Math.min(i.max,Math.max(0,i.qty+ +b.dataset.d));upd()});
+    m.querySelector('#rf-reason').addEventListener('change',e=>{reason=e.target.value;const cb=m.querySelector('#rf-restock');cb.checked=reason!=='Defect of beschadigd';restock=cb.checked});
+    m.querySelector('#rf-restock').addEventListener('change',e=>restock=e.target.checked);
+    bindSeg(m.querySelector('#rf-method'),'m',v=>{method=v;upd()});
+    m.querySelector('[data-close]').addEventListener('click',closeModal);
+    m.querySelector('#rf-ok').addEventListener('click',async e=>{
+      const sel=items.filter(i=>i.qty>0);if(!sel.length){toast('Kies minstens één product','bad');return}
+      if(method==='Omruil'&&credit){toast('Er staat al een omruiltegoed open op de kassa','bad');return}
+      const btn=e.currentTarget;btn.disabled=true;btn.textContent='Bezig…';
+      try{const r=await createRefund({sale:s,items:sel,method,reason,restock});afterRefund(r)}
+      catch(err){toast('Retour mislukt: '+(err&&err.message||'onbekende fout'),'bad');btn.disabled=false;upd()}
+    });
+    upd();
+  },true);
+}
+async function createRefund({sale,items,method,reason,restock}){
+  const amt=round2(sum(items,i=>i.unit*i.qty)),now=Date.now();
+  const r={id:uid(),type:'refund',ts:now,register,method,reason,restock,refOf:sale?sale.id:null,refReceipt:sale?sale.receiptNo:null,receiptNo:'RET-'+String(now).slice(-6),
+    items:items.map(i=>({pid:i.pid,sku:i.sku||'',name:i.name,variant:i.variant||'',category:i.category||'Overig',price:+i.price||0,unit:round2(i.unit),cost:+i.cost||0,qty:i.qty})),subtotal:-amt,discount:0,total:-amt};
+  await api.addSales([r]);
+  if(restock){
+    const ps=items.map(i=>({i,p:pById(i.pid)})).filter(x=>x.p);
+    await Promise.all(ps.map(x=>api.setStock(x.p.id,(+x.p.stock||0)+x.i.qty)));
+    api.addMoves(ps.map(x=>mv(x.p,x.i.qty,(+x.p.stock||0)+x.i.qty,'Retour',r.receiptNo)));
+  }
+  return r;
+}
+function afterRefund(r){
+  if(posMode==='refund'){posMode='sale';cart=[]}
+  if(r.method==='Omruil'){
+    credit={amount:-r.total,refundId:r.id,receiptNo:r.receiptNo};cart=[];discount=null;closeModal();go('kassa');renderTiles();renderCart();
+    toast('Tegoed van '+eur(-r.total)+' staat op de bon. Kies de nieuwe producten.');
+  }else{renderTiles();renderCart();showReceipt(r,true)}
+}
+$('#p-return').addEventListener('click',()=>{
+  const recent=S.sales.filter(s=>!isRefund(s)&&s.register===register).slice(0,5);
+  openModal(`<h3>Retour</h3><p class="lead">Scan of typ het bonnummer, of kies een recente bon</p>
+    <div class="field"><label for="rt-q">Bonnummer</label><input class="input" id="rt-q" placeholder="Bijv. ${esc((register||'STA').replace(/[^A-Za-z0-9]/g,'').slice(0,3).toUpperCase())}-123456" autofocus autocomplete="off"></div>
+    <div class="list" id="rt-list" style="margin-top:10px">${recent.map(s=>`<div class="list-row" style="cursor:pointer" data-sale="${esc(s.id)}"><span><b style="font-weight:600">${esc(s.receiptNo)}</b> <span class="sku">${tm(s.ts)} · ${esc(s.items.map(i=>i.qty+'× '+i.name).join(', '))}</span></span><b>${eur(s.total)}</b></div>`).join('')||'<div class="empty">Nog geen bonnen op deze kassa.</div>'}</div>
+    <div class="modal-foot"><button class="btn" data-nobon style="margin-right:auto">Retour zonder bon</button><button class="btn" data-close>Annuleren</button><button class="btn primary" data-ok>Bon zoeken</button></div>`,
+  m=>{
+    const find=()=>{const q=m.querySelector('#rt-q').value.trim().toLowerCase();if(!q)return;const hits=S.sales.filter(s=>!isRefund(s)&&String(s.receiptNo).toLowerCase().includes(q));
+      if(hits.length===1){closeModal();startReturn(hits[0])}else if(!hits.length)toast('Geen bon gevonden met '+q,'bad');
+      else m.querySelector('#rt-list').innerHTML=hits.slice(0,8).map(s=>`<div class="list-row" style="cursor:pointer" data-sale="${esc(s.id)}"><span><b style="font-weight:600">${esc(s.receiptNo)}</b> <span class="sku">${dt(s.ts)} · ${esc(s.register)}</span></span><b>${eur(s.total)}</b></div>`).join('')};
+    m.querySelector('#rt-q').addEventListener('keydown',e=>{if(e.key==='Enter')find()});
+    m.querySelector('[data-ok]').addEventListener('click',find);
+    m.querySelector('#rt-list').addEventListener('click',e=>{const r=e.target.closest('[data-sale]');if(!r)return;const s=S.sales.find(x=>x.id===r.dataset.sale);closeModal();if(s)startReturn(s)});
+    m.querySelector('[data-nobon]').addEventListener('click',()=>{closeModal();go('kassa');setMode('refund')});
+    m.querySelector('[data-close]').addEventListener('click',closeModal);
+  });
+});
+function showReceipt(s,fresh){
+  const ref=isRefund(s),rels=ref?[]:refundsOf(s.id);
+  const canReturn=!ref&&s.items.some(i=>i.qty-returnedQty(s.id,i.pid)>0);
+  const title=fresh?(ref?(s.method==='Omruil'?'Omruiltegoed aangemaakt':'Terugbetaald via '+s.method):'Betaald met '+s.method):(ref?'Retourbon ':'Bon ')+s.receiptNo;
+  openModal(`${fresh?`<div class="check" style="${ref?'background:var(--bad-soft);color:var(--bad)':''}"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></div>`:''}
+    <h3>${esc(title)}</h3>
+    <p class="lead">${esc(s.receiptNo)} · ${esc(s.register)} · ${new Date(s.ts).toLocaleString('nl-NL',{dateStyle:'medium',timeStyle:'short'})}</p>
+    ${ref?`<p style="margin:-8px 0 14px;font-size:14px">${s.refReceipt?'Retour van bon <b>'+esc(s.refReceipt)+'</b>':'Retour zonder bon'} · ${esc(s.reason||'')} · ${s.restock?'teruggeboekt op voorraad':'niet teruggeboekt'}</p>`:''}
+    <div class="receipt"><div class="list">${s.items.map(i=>{const rq=ref?0:returnedQty(s.id,i.pid);return `<div class="list-row"><span>${i.qty}× ${esc(i.name)} <span class="sku">${esc(i.variant)}${rq?' · '+rq+' retour':''}</span></span><span class="${ref?'neg':''}">${ref?'− ':''}${eur(unitOf(s,i)*i.qty)}</span></div>`}).join('')}
+    ${s.discount?`<div class="list-row"><span>Korting</span><span>− ${eur(s.discount)}</span></div>`:''}
+    ${s.credit?`<div class="list-row"><span>Omruiltegoed ${esc(s.creditRef||'')}</span><span>− ${eur(s.credit)}</span></div>`:''}
+    <div class="list-row" style="font:800 18px var(--display)"><span>${ref?'Terugbetaald':s.credit?'Betaald':'Totaal'}</span><span class="${ref?'neg':''}">${eur(ref?s.total:(s.paid!=null?s.paid:s.total))}</span></div>
+    ${s.received!=null?`<div class="list-row"><span>Ontvangen</span><span>${eur(s.received)}</span></div><div class="list-row"><b>Wisselgeld</b><b>${eur(s.received-(s.paid!=null?s.paid:s.total))}</b></div>`:''}</div></div>
+    ${rels.length?`<p style="font-size:13px;margin:12px 0 0;color:var(--muted)">Retouren op deze bon: ${rels.map(r=>esc(r.receiptNo)+' ('+eur(r.total)+')').join(', ')}</p>`:''}
+    <div class="modal-foot">${canReturn?'<button class="btn" data-ret style="margin-right:auto">Retour of omruilen</button>':''}<button class="btn ${fresh?'accent':'primary'}" data-close autofocus>${fresh?'Nieuwe verkoop':'Sluiten'}</button></div>`,
+  m=>{m.querySelector('[data-close]').addEventListener('click',()=>{closeModal();if(fresh&&view==='kassa'&&window.innerWidth>860)$('#p-search').focus()});
+    const rb=m.querySelector('[data-ret]');if(rb)rb.addEventListener('click',()=>{closeModal();startReturn(s)})});
+}
+
+/* ---------- Dagafsluiting ---------- */
+function closingData(reg,dayKey){
+  const start=keyToTs(dayKey),end=start+864e5;
+  const list=S.sales.filter(s=>s.ts>=start&&s.ts<end&&(reg==='all'||s.register===reg));
+  const st=stats(list),methods={};
+  const M=k=>methods[k]=methods[k]||{in:0,out:0,n:0};
+  st.sales.forEach(s=>{const x=M(s.method);x.in+=s.paid!=null?+s.paid:+s.total;x.n++;if(s.credit)M('Omruil').in+=+s.credit});
+  st.refs.forEach(r=>{const x=M(r.method);x.out+=-r.total;x.n++});
+  return {list,st,methods,cashIn:methods.Contant?methods.Contant.in:0,cashOut:methods.Contant?methods.Contant.out:0};
+}
+function openClosing(){
+  let reg=register,day=dateKey(Date.now());
+  openModal(`<h3>Dagafsluiting</h3><p class="lead">Tel de kassa en vergelijk met de verwachte kasinhoud</p>
+    <div class="form-grid"><div class="field"><label for="z-reg">Kassa</label><select class="input" id="z-reg">${['all',...regs()].map(r=>`<option value="${esc(r)}"${r===reg?' selected':''}>${r==='all'?'Alle kassa’s':esc(r)}</option>`).join('')}</select></div>
+    <div class="field"><label for="z-day">Datum</label><input class="input" id="z-day" type="date" value="${day}"></div></div>
+    <div id="z-out"></div>
+    <div class="form-grid"><div class="field"><label for="z-float">Wisselgeld bij opening</label><input class="input" id="z-float" type="number" min="0" step="0.05" value="${+S.settings.float||0}"></div>
+    <div class="field"><label for="z-count">Geteld contant geld</label><input class="input" id="z-count" type="number" min="0" step="0.05" autofocus></div>
+    <div class="field full"><label for="z-note">Notitie</label><input class="input" id="z-note" placeholder="Optioneel, bijv. wie geteld heeft"></div></div>
+    <div class="list-row" style="margin-top:12px"><span>Verwacht contant in de la</span><b id="z-exp">—</b></div>
+    <div class="list-row"><span>Verschil</span><span class="diff" id="z-diff">—</span></div>
+    <div class="modal-foot"><button class="btn" data-x style="margin-right:auto">Exporteren</button><button class="btn" data-close>Annuleren</button><button class="btn primary" data-ok>Afsluiting opslaan</button></div>`,
+  m=>{
+    let Z;
+    const calc=()=>{
+      reg=m.querySelector('#z-reg').value;day=m.querySelector('#z-day').value||dateKey(Date.now());Z=closingData(reg,day);
+      const ms=Object.entries(Z.methods);
+      m.querySelector('#z-out').innerHTML=`<div class="z-grid"><div><b>${Z.st.tx}</b><span>Bonnen</span></div><div><b>${eur(Z.st.net)}</b><span>Netto omzet</span></div><div><b>${eur(Z.st.refundAmt)}</b><span>Retouren (${Z.st.refs.length})</span></div><div><b>${eur(Z.st.disc)}</b><span>Korting</span></div><div><b>${num(Z.st.items)}</b><span>Items netto</span></div><div><b>${eur(Z.st.vatAmt)}</b><span>Btw</span></div></div>
+        <table class="mini-table"><thead><tr><th>Betaalmethode</th><th class="num">Ontvangen</th><th class="num">Terugbetaald</th><th class="num">Netto</th></tr></thead><tbody>${ms.length?ms.map(([k,v])=>`<tr><td>${k==='Omruil'?'Omruiltegoed':esc(k)}</td><td class="num">${eur(v.in)}</td><td class="num">${v.out?'− '+eur(v.out):'—'}</td><td class="num"><b>${eur(v.in-v.out)}</b></td></tr>`).join(''):'<tr><td colspan="4" class="empty">Geen transacties op deze dag.</td></tr>'}</tbody></table>`;
+      const fl=parseFloat(m.querySelector('#z-float').value)||0,exp=round2(fl+Z.cashIn-Z.cashOut),cv=m.querySelector('#z-count').value;
+      m.querySelector('#z-exp').textContent=eur(exp);
+      const d=m.querySelector('#z-diff');
+      if(cv===''){d.textContent='—';d.className='diff'}else{const df=round2(parseFloat(cv)-exp);d.textContent=(df>0?'+ ':df<0?'− ':'')+eur(Math.abs(df));d.className='diff '+(Math.abs(df)<0.01?'pos-pos':'neg')}
+      return {fl,exp,cv};
+    };
+    ['#z-reg','#z-day','#z-float','#z-count'].forEach(id=>m.querySelector(id).addEventListener('input',calc));
+    m.querySelector('#z-reg').addEventListener('change',calc);
+    m.querySelector('[data-close]').addEventListener('click',closeModal);
+    const doc=()=>{const c=calc();const counted=c.cv===''?null:round2(parseFloat(c.cv));return {id:uid(),ts:Date.now(),date:day,register:reg==='all'?'Alle kassa’s':reg,float:c.fl,expected:c.exp,counted,diff:counted==null?null:round2(counted-c.exp),tx:Z.st.tx,net:round2(Z.st.net),gross:round2(Z.st.gross),refunds:round2(Z.st.refundAmt),discount:round2(Z.st.disc),vat:round2(Z.st.vatAmt),items:Z.st.items,methods:Object.fromEntries(Object.entries(Z.methods).map(([k,v])=>[k,{in:round2(v.in),out:round2(v.out),n:v.n}])),note:m.querySelector('#z-note').value.trim()}};
+    m.querySelector('[data-ok]').addEventListener('click',async()=>{const z=doc();if(z.counted==null){toast('Vul het getelde contante geld in','bad');return}try{await api.addClosing(z);closeModal();toast('Dagafsluiting opgeslagen');}catch(e){toast('Opslaan mislukt: '+e.message,'bad')}});
+    m.querySelector('[data-x]').addEventListener('click',()=>exportClosing(doc(),Z.list));
+    calc();
+  },true);
+}
+function exportClosing(z,list){
+  if(!window.XLSX){toast('De Excel-module is niet geladen.','bad');return}
+  const wb=XLSX.utils.book_new();
+  const rows=[['Dagafsluiting',S.settings.event||''],['Datum',z.date],['Kassa',z.register],['Gemaakt op',new Date(z.ts).toLocaleString('nl-NL')],z.note?['Notitie',z.note]:[],[],
+    ['Bonnen',z.tx],['Brutoverkoop',z.gross],['Retouren',z.refunds],['Korting',z.discount],['Netto omzet incl. btw',z.net],['Btw',z.vat],['Items netto',z.items],[],
+    ['Betaalmethode','Ontvangen','Terugbetaald','Netto'],...Object.entries(z.methods).map(([k,v])=>[k,v.in,v.out,round2(v.in-v.out)]),[],
+    ['Wisselgeld bij opening',z.float],['Verwacht contant',z.expected],['Geteld contant',z.counted==null?'':z.counted],['Verschil',z.diff==null?'':z.diff]];
+  XLSX.utils.book_append_sheet(wb,sheet(rows,[24,14,14,12]),'Afsluiting');
+  if(list)XLSX.utils.book_append_sheet(wb,sheet([['Bon','Tijd','Type','Kassa','Betaling','Totaal','Producten'],...list.map(s=>[s.receiptNo,tm(s.ts),isRefund(s)?'Retour':'Verkoop',s.register,s.method,s.total,s.items.map(i=>i.qty+'× '+i.name+(i.variant?' '+i.variant:'')).join(', ')])],[14,8,10,14,10,10,50]),'Bonnen');
+  saveWorkbook(wb,'dagafsluiting-'+slug(z.register)+'-'+z.date+'.xlsx');
+}
+$('#p-close').addEventListener('click',openClosing);
+$('#z-new').addEventListener('click',openClosing);
+
+/* ---------- Voorraad ---------- */
+$('#t-search').addEventListener('input',renderTable);
+$('#t-cat').addEventListener('change',renderTable);
+bindSeg($('#t-filter'),'f',v=>{tFilter=v;renderTable()});
+bindTabs($('#st-tabs'),t=>{stTab=t;renderStock()});
+$('#m-search').addEventListener('input',renderMoves);
+$('#m-reason').addEventListener('change',renderMoves);
+function soldMap(){const m={};S.sales.forEach(s=>s.items.forEach(i=>{m[i.pid]=(m[i.pid]||0)+sign(s)*i.qty}));return m}
+function renderStock(){
+  const P=S.products,units=sum(P,p=>Math.max(0,+p.stock||0)),sell=sum(P,p=>Math.max(0,+p.stock||0)*(+p.price||0)),buy=sum(P,p=>Math.max(0,+p.stock||0)*(+p.cost||0));
+  const low=P.filter(p=>stockState(p)==='low').length,out=P.filter(p=>stockState(p)==='out').length;
+  $('#st-cards').innerHTML=[['Artikelen (SKU’s)',num(P.length),num(units)+' stuks'],['Verkoopwaarde',eur0(sell),'Incl. btw'],['Inkoopwaarde',eur0(buy),buy?'Marge in voorraad '+eur0(sell/(1+S.settings.vat/100)-buy):'Geen inkoopprijzen'],['Lage voorraad',num(low),'Onder minimum'],['Uitverkocht',num(out),'Voorraad 0']]
+    .map(([l,v,h])=>`<div class="kpi"><div class="lbl">${l}</div><div class="val">${v}</div><div class="hint">${h}</div></div>`).join('');
+  $('#mv-count').textContent=num(S.moves.length);
+  $$('#st-tabs [role=tab]').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===stTab));
+  $('#st-list').hidden=stTab!=='list';$('#st-moves').hidden=stTab!=='moves';
+  if(stTab==='moves'){renderMoves();return}
+  const cur=$('#t-cat').value||'all';
+  $('#t-cat').innerHTML='<option value="all">Alle categorieën</option>'+cats().map(c=>`<option${c===cur?' selected':''}>${esc(c)}</option>`).join('');
+  $$('#t-filter button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.f===tFilter));
+  renderTable();
+}
+function renderTable(){
+  const q=$('#t-search').value.trim().toLowerCase(),c=$('#t-cat').value||'all',sold=soldMap();
+  const rows=S.products.filter(p=>(c==='all'||(p.category||'Overig')===c)&&(tFilter==='all'||stockState(p)===tFilter)&&(!q||[p.name,p.sku,p.barcode,p.variant].some(v=>v&&String(v).toLowerCase().includes(q))))
+    .sort((a,b)=>(a.category||'').localeCompare(b.category||'','nl')||a.name.localeCompare(b.name,'nl')||sortVariants(a,b));
+  if(!S.products.length){$('#t-body').innerHTML=`<tr><td colspan="10" style="padding:40px;text-align:center;white-space:normal"><b style="font:700 18px var(--display)">Je voorraad is nog leeg</b><br><span style="color:var(--muted)">Download het sjabloon, vul het in Excel en importeer het hier. Of voeg een product handmatig toe.</span></td></tr>`;return}
+  if(!rows.length){$('#t-body').innerHTML='<tr><td colspan="10" class="empty" style="padding:24px 14px">Geen producten voor dit filter.</td></tr>';return}
+  $('#t-body').innerHTML=rows.map(p=>{const sd=sold[p.id]||0,st=Math.max(0,+p.stock||0),pct=sd+st>0?Math.round(sd/(sd+st)*100):0;return `<tr data-id="${esc(p.id)}">
+    <td><b style="font-weight:600">${esc(p.name)}</b><div class="sku">${esc(p.sku||'')}${p.barcode?' · '+esc(p.barcode):''}</div></td>
+    <td>${esc(p.variant||'—')}</td>
+    <td><span class="badge neutral"><span style="width:8px;height:8px;border-radius:2px;background:${catColor(p.category||'Overig')}"></span>${esc(p.category||'Overig')}</span></td>
+    <td class="num">${eur(p.price)}</td><td class="num" style="color:var(--muted)">${p.cost?eur(p.cost):'—'}</td>
+    <td><span class="stepper"><button data-s="-1" aria-label="Voorraad min één">−</button><b>${num(p.stock)}</b><button data-s="1" aria-label="Voorraad plus één">+</button></span></td>
+    <td>${stockBadge(p)}</td>
+    <td class="num">${num(sd)} <span class="sku">${pct}%</span></td>
+    <td class="num">${eur0(st*(+p.price||0))}</td>
+    <td class="num"><button class="icon-btn" data-edit aria-label="Bewerken"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn" data-adj aria-label="Voorraad tellen of levering"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></button></td></tr>`}).join('');
+}
+function renderMoves(){
+  const q=$('#m-search').value.trim().toLowerCase(),r=$('#m-reason').value;
+  const rows=S.moves.filter(m=>(r==='all'||m.reason===r)&&(!q||[m.name,m.sku,m.ref,m.variant].some(v=>v&&String(v).toLowerCase().includes(q))));
+  if(!S.moves.length){$('#m-body').innerHTML='<tr><td colspan="8" style="padding:40px;text-align:center;color:var(--muted);white-space:normal">Nog geen mutaties. Elke verkoop, retour, levering, telling en import verschijnt hier.</td></tr>';return}
+  $('#m-body').innerHTML=rows.slice(0,400).map(m=>`<tr><td>${dt(m.ts)}</td><td><b style="font-weight:600">${esc(m.name)}</b><div class="sku">${esc(m.sku)}</div></td><td>${esc(m.variant||'—')}</td><td><span class="badge ${m.reason==='Verkoop'?'neutral':m.reason==='Retour'?'warn':m.delta>0?'ok':'neutral'}">${esc(m.reason)}</span></td><td class="num ${m.delta<0?'neg':'pos-pos'}"><b>${m.delta>0?'+':''}${num(m.delta)}</b></td><td class="num">${num(m.after)}</td><td>${esc(m.ref||'—')}</td><td>${esc(m.register||'—')}</td></tr>`).join('')||'<tr><td colspan="8" class="empty" style="padding:24px 14px">Geen mutaties voor dit filter.</td></tr>';
+}
+$('#m-export').addEventListener('click',()=>{
+  if(!S.moves.length){toast('Er zijn nog geen mutaties om te exporteren','bad');return}
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,sheet([['Datum','Tijd','SKU','Product','Variant','Reden','Mutatie','Nieuwe voorraad','Kenmerk','Kassa'],...S.moves.map(m=>[new Date(m.ts).toLocaleDateString('nl-NL'),tm(m.ts),m.sku,m.name,m.variant,m.reason,m.delta,m.after,m.ref,m.register])],[12,8,14,24,10,12,10,16,14,14]),'Mutaties');
+  saveWorkbook(wb,'voorraadmutaties-'+slug(S.settings.event)+'-'+stamp()+'.xlsx');
+});
+$('#t-body').addEventListener('click',e=>{
+  const tr=e.target.closest('tr[data-id]');if(!tr)return;const p=pById(tr.dataset.id);if(!p)return;
+  const s=e.target.closest('[data-s]');
+  if(s){const ns=Math.max(0,(+p.stock||0)+ +s.dataset.s);if(ns===(+p.stock||0))return;api.setStock(p.id,ns).then(()=>api.addMoves([mv(p,ns-(+p.stock||0),ns,'Correctie')])).catch(err=>toast('Opslaan mislukt: '+err.message,'bad'));return}
+  if(e.target.closest('[data-edit]')){editProduct(p);return}
+  if(e.target.closest('[data-adj]')){adjustStock(p);return}
+});
+function adjustStock(p){
+  openModal(`<h3>Voorraad bijwerken</h3><p class="lead">${esc(p.name)} ${esc(p.variant||'')} · nu ${num(p.stock)} stuks</p>
+    <div class="seg" id="am" role="group"><button data-m="add" aria-pressed="true">Levering bijboeken</button><button data-m="set" aria-pressed="false">Telling invoeren</button></div>
+    <div class="field" style="margin-top:14px"><label for="aq" id="al">Aantal geleverd</label><input class="input" id="aq" type="number" min="0" step="1" autofocus></div>
+    <div class="field" style="margin-top:12px"><label for="aref">Kenmerk</label><input class="input" id="aref" placeholder="Bijv. pakbon of naam van de teller"></div>
+    <div class="modal-foot"><button class="btn" data-close>Annuleren</button><button class="btn primary" data-ok>Voorraad opslaan</button></div>`,
+  m=>{let mode='add';
+    bindSeg(m.querySelector('#am'),'m',v=>{mode=v;m.querySelector('#al').textContent=mode==='set'?'Getelde voorraad':'Aantal geleverd'});
+    m.querySelector('[data-close]').addEventListener('click',closeModal);
+    m.querySelector('[data-ok]').addEventListener('click',async()=>{const v=parseInt(m.querySelector('#aq').value,10);if(!Number.isFinite(v)||v<0){toast('Vul een aantal in','bad');return}
+      const old=+p.stock||0,ns=mode==='set'?v:old+v;
+      try{await api.setStock(p.id,ns);if(ns!==old)api.addMoves([mv(p,ns-old,ns,mode==='set'?'Telling':'Levering',m.querySelector('#aref').value.trim())]);closeModal();toast('Voorraad opgeslagen: '+num(ns)+' stuks')}catch(err){toast('Opslaan mislukt: '+err.message,'bad')}});
+  });
+}
+$('#b-new').addEventListener('click',()=>editProduct(null));
+function editProduct(p){
+  const isNew=!p;p=p||{id:uid(),name:'',sku:'',category:'',variant:'',price:'',cost:'',stock:0,minStock:'',barcode:''};
+  openModal(`<h3>${isNew?'Nieuw product':'Product bewerken'}</h3><p class="lead">${isNew?'Maak per maat of kleur een aparte variant aan met dezelfde productnaam.':esc(p.sku||'')}</p>
+    <div class="form-grid">
+      <div class="field full"><label for="f-name">Productnaam</label><input class="input" id="f-name" value="${esc(p.name)}" autofocus></div>
+      <div class="field"><label for="f-cat">Categorie</label><input class="input" id="f-cat" list="catlist" value="${esc(p.category)}"><datalist id="catlist">${cats().map(c=>`<option value="${esc(c)}">`).join('')}</datalist></div>
+      <div class="field"><label for="f-var">Variant / maat</label><input class="input" id="f-var" value="${esc(p.variant)}" placeholder="Bijv. M of Zwart"></div>
+      <div class="field"><label for="f-sku">SKU</label><input class="input" id="f-sku" value="${esc(p.sku)}" placeholder="Leeg laten voor automatisch"></div>
+      <div class="field"><label for="f-bar">Barcode (EAN)</label><input class="input" id="f-bar" value="${esc(p.barcode)}"></div>
+      <div class="field"><label for="f-price">Verkoopprijs incl. btw</label><input class="input" id="f-price" type="number" min="0" step="0.01" value="${esc(p.price)}"></div>
+      <div class="field"><label for="f-cost">Inkoopprijs excl. btw</label><input class="input" id="f-cost" type="number" min="0" step="0.01" value="${esc(p.cost)}"></div>
+      <div class="field"><label for="f-stock">Voorraad</label><input class="input" id="f-stock" type="number" min="0" step="1" value="${esc(p.stock)}"></div>
+      <div class="field"><label for="f-min">Minimumvoorraad</label><input class="input" id="f-min" type="number" min="0" step="1" value="${esc(p.minStock)}" placeholder="${S.settings.lowDefault}"></div>
+    </div>
+    <div class="modal-foot">${isNew?'':'<button class="btn danger" data-del style="margin-right:auto">Verwijderen</button>'}<button class="btn" data-close>Annuleren</button><button class="btn primary" data-ok>${isNew?'Product toevoegen':'Wijzigingen opslaan'}</button></div>`,
+  m=>{
+    m.querySelector('[data-close]').addEventListener('click',closeModal);
+    const del=m.querySelector('[data-del]');
+    if(del)del.addEventListener('click',async()=>{if(del.dataset.sure){try{await api.delProduct(p.id);closeModal();toast('Product verwijderd')}catch(err){toast('Verwijderen mislukt: '+err.message,'bad')}}else{del.dataset.sure='1';del.textContent='Klik nogmaals om te verwijderen'}});
+    m.querySelector('[data-ok]').addEventListener('click',async()=>{
+      const g=id=>m.querySelector(id).value.trim();
+      const np={...p,name:g('#f-name'),category:g('#f-cat')||'Overig',variant:g('#f-var'),barcode:g('#f-bar'),price:round2(parseFloat(g('#f-price'))||0),cost:round2(parseFloat(g('#f-cost'))||0),stock:Math.max(0,parseInt(g('#f-stock'),10)||0),minStock:g('#f-min')===''?'':Math.max(0,parseInt(g('#f-min'),10)||0)};
+      np.sku=g('#f-sku')||makeSku(np.name,np.variant);
+      if(!np.name){toast('Vul een productnaam in','bad');return}
+      if(S.products.some(x=>x.id!==np.id&&String(x.sku).toLowerCase()===np.sku.toLowerCase())){toast('SKU '+np.sku+' bestaat al','bad');return}
+      const old=isNew?0:(+p.stock||0);
+      try{await api.putProduct(np);if(np.stock!==old)api.addMoves([mv(np,np.stock-old,np.stock,'Handmatig',isNew?'Nieuw product':'')]);closeModal();toast(isNew?'Product toegevoegd':'Wijzigingen opgeslagen')}catch(err){toast('Opslaan mislukt: '+err.message,'bad')}
+    });
+  });
+}
+function makeSku(name,variant,extra){
+  const base=(String(name).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9 ]/g,'').split(/\s+/).filter(Boolean).map(w=>w.slice(0,3)).join('').toUpperCase().slice(0,9))||'ART';
+  const s=base+(variant?'-'+String(variant).replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,4):'');
+  const taken=extra||new Set(S.products.map(x=>String(x.sku).toLowerCase()));
+  let n=s,i=2;while(taken.has(n.toLowerCase()))n=s+'-'+(i++);
+  return n;
+}
+
+/* ---------- Excel ---------- */
+const COLS=[['sku','SKU'],['name','Naam'],['category','Categorie'],['variant','Variant'],['price','Prijs'],['cost','Inkoopprijs'],['stock','Voorraad'],['minStock','Minimum voorraad'],['barcode','Barcode']];
+const ALIASES={sku:['sku','artikelnummer','artikelnr','artnr','code','productcode'],name:['naam','product','productnaam','name','omschrijving','artikel','titel'],category:['categorie','category','groep','productgroep','type'],variant:['variant','maat','size','kleur','optie'],price:['prijs','verkoopprijs','price','prijs incl btw','verkoopprijs incl btw'],cost:['inkoopprijs','inkoop','cost','kostprijs','inkoopprijs excl btw'],stock:['voorraad','stock','aantal','qty','quantity','op voorraad'],minStock:['minimum voorraad','minimumvoorraad','min voorraad','minimum','min','minstock','bestelpunt'],barcode:['barcode','ean','gtin','upc','ean13']};
+const normH=h=>String(h).toLowerCase().replace(/[._\-\/()€]/g,' ').replace(/\s+/g,' ').trim();
+function parseNum(v){
+  if(typeof v==='number')return v;
+  let s=String(v==null?'':v).replace(/[€\s]/g,'');if(!s)return NaN;
+  if(s.includes(',')&&s.includes('.'))s=s.lastIndexOf(',')>s.lastIndexOf('.')?s.replace(/\./g,'').replace(',','.'):s.replace(/,/g,'');
+  else if(s.includes(','))s=s.replace(',','.');
+  return parseFloat(s);
+}
+async function saveWorkbook(wb,filename){
+  if(!window.XLSX){toast('De Excel-module is niet geladen. Controleer je verbinding.','bad');return}
+  const buf=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  let dl=null;try{dl=(window.claude&&window.claude.use)?await window.claude.use('downloads'):null}catch(e){dl=null}
+  if(dl){try{await dl.save({filename,data:new Blob([buf])});toast('Bestand opgeslagen')}catch(e){if(e&&e.code==='declined')return;toast('Opslaan lukte niet: '+(e&&(e.message||e.code)||'onbekende fout'),'bad')}}
+  else{try{XLSX.writeFile(wb,filename)}catch(e){toast('Downloaden wordt hier niet ondersteund','bad')}}
+}
+function sheet(rows,widths){const ws=XLSX.utils.aoa_to_sheet(rows);if(widths)ws['!cols']=widths.map(w=>({wch:w}));return ws}
+const stamp=()=>dateKey(Date.now());
+const slug=s=>String(s||'event').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'event';
+$('#b-template').addEventListener('click',()=>{
+  if(!window.XLSX){toast('De Excel-module is niet geladen.','bad');return}
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,sheet([COLS.map(c=>c[1]),['TEE-BLK-M','Tour Tee Zwart','T-shirts','M',35,9.5,120,20,'8712345000017'],['TEE-BLK-L','Tour Tee Zwart','T-shirts','L',35,9.5,140,20,'8712345000024'],['CAP-01','Logo Cap','Accessoires','',28,6,60,10,'']],[14,24,16,10,10,12,10,16,16]),'Producten');
+  saveWorkbook(wb,'standwerk-importsjabloon.xlsx');
+});
+$('#b-export').addEventListener('click',()=>{
+  if(!S.products.length){toast('Er zijn nog geen producten om te exporteren','bad');return}
+  const sold=soldMap(),rows=[COLS.map(c=>c[1]).concat(['Status','Verkocht (netto)','Verkoopwaarde','Inkoopwaarde'])];
+  [...S.products].sort((a,b)=>(a.category||'').localeCompare(b.category||'','nl')||a.name.localeCompare(b.name,'nl')||sortVariants(a,b))
+    .forEach(p=>{const st=Math.max(0,+p.stock||0);rows.push([p.sku,p.name,p.category,p.variant,+p.price||0,+p.cost||0,+p.stock||0,p.minStock===''?'':+p.minStock,p.barcode||'',{out:'Uitverkocht',low:'Laag',ok:'Op voorraad'}[stockState(p)],sold[p.id]||0,round2((+p.price||0)*st),round2((+p.cost||0)*st)])});
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,sheet(rows,[14,26,16,10,10,12,10,16,16,13,15,14,14]),'Producten');
+  saveWorkbook(wb,'voorraad-'+slug(S.settings.event)+'-'+stamp()+'.xlsx');
+});
+$('#b-tx-export').addEventListener('click',()=>{
+  if(!S.sales.length&&!S.closings.length){toast('Er zijn nog geen transacties om te exporteren','bad');return}
+  const tx=[['Bon','Type','Datum','Tijd','Kassa','Betaling','Subtotaal','Korting','Omruiltegoed','Totaal','Betaald','Originele bon','Reden','Aantal items']],lines=[['Bon','Type','Datum','Kassa','SKU','Product','Variant','Categorie','Aantal','Stukprijs','Regeltotaal']];
+  S.sales.forEach(s=>{const d=new Date(s.ts),ds=d.toLocaleDateString('nl-NL'),r=isRefund(s);
+    tx.push([s.receiptNo,r?'Retour':'Verkoop',ds,tm(s.ts),s.register,s.method,s.subtotal,s.discount||0,s.credit||0,s.total,r?s.total:(s.paid!=null?s.paid:s.total),s.refReceipt||'',s.reason||'',sign(s)*sum(s.items,i=>i.qty)]);
+    s.items.forEach(i=>lines.push([s.receiptNo,r?'Retour':'Verkoop',ds,s.register,i.sku,i.name,i.variant,i.category,sign(s)*i.qty,unitOf(s,i),round2(sign(s)*unitOf(s,i)*i.qty)]))});
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,sheet(tx,[14,9,12,8,14,10,11,10,13,11,11,14,18,12]),'Transacties');
+  XLSX.utils.book_append_sheet(wb,sheet(lines,[14,9,12,14,14,24,10,14,8,10,12]),'Verkoopregels');
+  if(S.closings.length)XLSX.utils.book_append_sheet(wb,sheet([['Datum','Kassa','Bonnen','Netto omzet','Retouren','Korting','Wisselgeld','Verwacht contant','Geteld','Verschil','Notitie','Opgeslagen'],...S.closings.map(z=>[z.date,z.register,z.tx,z.net,z.refunds,z.discount,z.float,z.expected,z.counted==null?'':z.counted,z.diff==null?'':z.diff,z.note||'',new Date(z.ts).toLocaleString('nl-NL')])],[12,14,8,12,10,10,11,15,10,10,24,18]),'Dagafsluitingen');
+  saveWorkbook(wb,'transacties-'+slug(S.settings.event)+'-'+stamp()+'.xlsx');
+});
+$('#b-import').addEventListener('click',()=>$('#file-in').click());
+$('#file-in').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(f)readFile(f)});
+document.addEventListener('dragover',e=>{if(view==='producten')e.preventDefault()});
+document.addEventListener('drop',e=>{if(view!=='producten')return;e.preventDefault();const f=e.dataTransfer.files[0];if(f)readFile(f)});
+function readFile(f){
+  if(!window.XLSX){toast('De Excel-module is niet geladen. Controleer je verbinding.','bad');return}
+  const r=new FileReader();
+  r.onload=()=>{try{const wb=XLSX.read(new Uint8Array(r.result),{type:'array'});previewImport(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''}),f.name)}catch(err){toast('Dit bestand kan niet gelezen worden. Gebruik .xlsx, .xls of .csv.','bad')}};
+  r.readAsArrayBuffer(f);
+}
+function previewImport(rows,fname){
+  if(!rows.length){toast('Het bestand bevat geen rijen','bad');return}
+  const heads=Object.keys(rows[0]),map={};
+  heads.forEach(h=>{const n=normH(h);for(const [k,al] of Object.entries(ALIASES)){if(!map[k]&&al.includes(n)){map[k]=h;break}}});
+  if(!map.name&&!map.sku){openModal(`<h3>Kolommen niet herkend</h3><p class="lead">Zorg dat je bestand minstens een kolom <b>Naam</b> of <b>SKU</b> heeft. Gevonden kolommen: ${heads.map(esc).join(', ')}</p><div class="modal-foot"><button class="btn primary" data-close>Begrepen</button></div>`,m=>m.querySelector('[data-close]').addEventListener('click',closeModal));return}
+  const bySku=new Map(S.products.map(p=>[String(p.sku).toLowerCase(),p])),parsed=[],errors=[],seen=new Set();
+  rows.forEach((row,i)=>{
+    const g=k=>map[k]?row[map[k]]:'';
+    let name=String(g('name')).trim(),sku=String(g('sku')).trim();
+    if(!name&&!sku)return;
+    const ex=sku?bySku.get(sku.toLowerCase()):null;
+    if(!name&&ex)name=ex.name;
+    if(!name){errors.push('Rij '+(i+2)+': geen productnaam');return}
+    const price=parseNum(g('price')),stock=parseNum(g('stock')),cost=parseNum(g('cost')),min=parseNum(g('minStock'));
+    if(map.price&&String(g('price')).trim()!==''&&!Number.isFinite(price)){errors.push('Rij '+(i+2)+': prijs “'+g('price')+'” is geen getal');return}
+    if(sku&&seen.has(sku.toLowerCase())){errors.push('Rij '+(i+2)+': SKU '+sku+' staat dubbel in het bestand');return}
+    if(sku)seen.add(sku.toLowerCase());
+    parsed.push({ex,row:{sku,name,category:String(g('category')).trim(),variant:String(g('variant')).trim(),barcode:String(g('barcode')).trim(),price,cost,stock,min}});
+  });
+  const nNew=parsed.filter(x=>!x.ex).length,nUpd=parsed.length-nNew;
+  openModal(`<h3>Import controleren</h3><p class="lead">${esc(fname)} · ${rows.length} rijen gelezen</p>
+    <div class="import-stats"><div><b>${nNew}</b><span>Nieuwe producten</span></div><div><b>${nUpd}</b><span>Bij te werken</span></div><div><b style="color:${errors.length?'var(--bad)':'inherit'}">${errors.length}</b><span>Overgeslagen</span></div></div>
+    <p style="font-size:13px;color:var(--muted);margin:0 0 12px">Herkende kolommen: ${COLS.filter(c=>map[c[0]]).map(c=>c[1]+' ← “'+esc(map[c[0]])+'”').join(', ')}</p>
+    ${errors.length?`<details style="margin-bottom:12px;font-size:13px"><summary style="cursor:pointer;font-weight:600">Bekijk overgeslagen rijen</summary><div style="color:var(--bad);margin-top:6px">${errors.slice(0,30).map(esc).join('<br>')}${errors.length>30?'<br>…':''}</div></details>`:''}
+    ${nUpd&&map.stock?`<div class="field"><label>Voorraad bij bestaande producten</label><div class="seg" id="im" role="group"><button data-m="set" aria-pressed="true">Overschrijven</button><button data-m="add" aria-pressed="false">Optellen (levering)</button></div></div>`:''}
+    <div class="modal-foot"><button class="btn" data-close>Annuleren</button><button class="btn primary" data-ok ${parsed.length?'':'disabled'}>${parsed.length} producten importeren</button></div>`,
+  m=>{let mode='set';const im=m.querySelector('#im');if(im)bindSeg(im,'m',v=>mode=v);
+    m.querySelector('[data-close]').addEventListener('click',closeModal);
+    m.querySelector('[data-ok]').addEventListener('click',async e=>{
+      const btn=e.currentTarget;btn.disabled=true;btn.textContent='Bezig met importeren…';
+      const out=[],moves=[];
+      parsed.forEach(({ex,row})=>{
+        const base=ex?{...ex}:{id:uid(),name:row.name,category:'Overig',variant:'',sku:'',barcode:'',price:0,cost:0,stock:0,minStock:''};
+        const old=ex?(+ex.stock||0):0;
+        base.name=row.name||base.name;
+        if(map.category&&row.category)base.category=row.category;
+        if(map.variant&&(row.variant||!ex))base.variant=row.variant;
+        if(map.barcode&&row.barcode)base.barcode=row.barcode;
+        if(Number.isFinite(row.price))base.price=round2(row.price);
+        if(Number.isFinite(row.cost))base.cost=round2(row.cost);
+        if(Number.isFinite(row.min))base.minStock=Math.max(0,Math.round(row.min));
+        if(Number.isFinite(row.stock)){const s=Math.max(0,Math.round(row.stock));base.stock=ex&&mode==='add'?old+s:s}
+        base.sku=row.sku||base.sku||'';
+        out.push(base);
+        if((+base.stock||0)!==old)moves.push({p:base,d:(+base.stock||0)-old});
+      });
+      const taken=new Set(S.products.map(p=>String(p.sku).toLowerCase()).concat(out.filter(p=>p.sku).map(p=>p.sku.toLowerCase())));
+      out.forEach(p=>{if(!p.sku){p.sku=makeSku(p.name,p.variant,taken);taken.add(p.sku.toLowerCase())}});
+      try{await api.putProducts(out);api.addMoves(moves.map(x=>mv(x.p,x.d,+x.p.stock||0,'Import',fname)));closeModal();toast(out.length+' producten geïmporteerd')}
+      catch(err){toast('Import mislukt: '+(err&&err.message||'onbekende fout'),'bad');btn.disabled=false;btn.textContent='Opnieuw proberen'}
+    });
+  });
+}
+
+/* ---------- Transacties ---------- */
+$('#tx-search').addEventListener('input',renderTx);
+$('#tx-reg').addEventListener('change',renderTx);
+bindSeg($('#tx-type'),'t',v=>{txType=v;renderTx()});
+bindTabs($('#tx-tabs'),t=>{txTab=t;renderTx()});
+function renderTx(){
+  $$('#tx-tabs [role=tab]').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===txTab));
+  $('#tx-bon').hidden=txTab!=='bon';$('#tx-z').hidden=txTab!=='z';
+  $("#zc-count").textContent=S.closings.length;
+  const st=stats(S.sales);
+  $('#tx-sub').textContent=S.sales.length?num(st.tx)+' verkopen · '+st.refs.length+' retouren · '+eur(st.net)+' netto':'Alle afgerekende bonnen';
+  if(txTab==='z'){
+    $('#z-body').innerHTML=S.closings.length?S.closings.map(z=>`<tr class="clickable" data-z="${esc(z.id)}"><td><b style="font-weight:600">${new Date(keyToTs(z.date)).toLocaleDateString('nl-NL',{weekday:'short',day:'numeric',month:'short'})}</b></td><td>${esc(z.register)}</td><td class="num">${z.tx}</td><td class="num">${eur(z.net)}</td><td class="num">${eur(z.expected)}</td><td class="num">${z.counted==null?'—':eur(z.counted)}</td><td class="num ${z.diff&&Math.abs(z.diff)>=0.01?'neg':'pos-pos'}"><b>${z.diff==null?'—':(z.diff>0?'+ ':z.diff<0?'− ':'')+eur(Math.abs(z.diff))}</b></td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${esc(z.note||'—')}</td><td>${dt(z.ts)}</td></tr>`).join(''):'<tr><td colspan="9" style="padding:40px;text-align:center;color:var(--muted);white-space:normal">Nog geen dagafsluitingen. Sluit aan het eind van de dag elke kassa af om contant geld te controleren.</td></tr>';
+    return;
+  }
+  const q=$('#tx-search').value.trim().toLowerCase(),reg=$('#tx-reg').value||'all';
+  const rows=S.sales.filter(s=>(txType==='all'||(txType==='refund')===isRefund(s))&&(reg==='all'||s.register===reg)&&(!q||String(s.receiptNo).toLowerCase().includes(q)||String(s.refReceipt||'').toLowerCase().includes(q)||s.items.some(i=>i.name.toLowerCase().includes(q))));
+  if(!S.sales.length){$('#tx-body').innerHTML='<tr><td colspan="7" style="padding:40px;text-align:center;color:var(--muted)">Nog geen transacties. Afgerekende bonnen uit de kassa verschijnen hier.</td></tr>';return}
+  $('#tx-body').innerHTML=rows.slice(0,400).map(s=>{const r=isRefund(s),rs=r?[]:refundsOf(s.id);return `<tr class="clickable" data-id="${esc(s.id)}"><td><b style="font-weight:600">${esc(s.receiptNo)}</b>${r?' <span class="badge bad">Retour</span>':rs.length?' <span class="badge warn">Deels retour</span>':''}${r&&s.refReceipt?`<div class="sku">van ${esc(s.refReceipt)}</div>`:''}</td><td>${dt(s.ts)}</td><td>${esc(s.register)}</td>
+    <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis">${esc(s.items.map(i=>i.qty+'× '+i.name+(i.variant?' '+i.variant:'')).join(', '))}</td>
+    <td><span class="badge neutral">${esc(s.method==='Omruil'?'Omruiltegoed':s.method)}</span>${s.credit?' <span class="badge ok">+ tegoed</span>':''}</td><td class="num">${s.discount?'− '+eur(s.discount):'—'}</td><td class="num ${r?'neg':''}"><b>${eur(s.total)}</b></td></tr>`}).join('')+(rows.length>400?`<tr><td colspan="7" class="empty" style="padding:14px">De eerste 400 van ${num(rows.length)} bonnen getoond. Exporteer voor het volledige overzicht.</td></tr>`:'')||'<tr><td colspan="7" class="empty" style="padding:24px 14px">Geen bonnen gevonden.</td></tr>';
+}
+$('#tx-body').addEventListener('click',e=>{const tr=e.target.closest('tr[data-id]');if(!tr)return;const s=S.sales.find(x=>x.id===tr.dataset.id);if(s)showReceipt(s,false)});
+$('#z-body').addEventListener('click',e=>{const tr=e.target.closest('tr[data-z]');if(!tr)return;const z=S.closings.find(x=>x.id===tr.dataset.z);if(!z)return;
+  openModal(`<h3>Dagafsluiting ${esc(z.register)}</h3><p class="lead">${new Date(keyToTs(z.date)).toLocaleDateString('nl-NL',{dateStyle:'full'})} · opgeslagen ${dt(z.ts)}</p>
+    <div class="z-grid"><div><b>${z.tx}</b><span>Bonnen</span></div><div><b>${eur(z.net)}</b><span>Netto omzet</span></div><div><b>${eur(z.refunds)}</b><span>Retouren</span></div></div>
+    <table class="mini-table"><thead><tr><th>Betaalmethode</th><th class="num">Ontvangen</th><th class="num">Terugbetaald</th><th class="num">Netto</th></tr></thead><tbody>${Object.entries(z.methods||{}).map(([k,v])=>`<tr><td>${k==='Omruil'?'Omruiltegoed':esc(k)}</td><td class="num">${eur(v.in)}</td><td class="num">${v.out?'− '+eur(v.out):'—'}</td><td class="num"><b>${eur(v.in-v.out)}</b></td></tr>`).join('')}</tbody></table>
+    <div class="list-row"><span>Wisselgeld bij opening</span><b>${eur(z.float)}</b></div><div class="list-row"><span>Verwacht contant</span><b>${eur(z.expected)}</b></div><div class="list-row"><span>Geteld</span><b>${z.counted==null?'—':eur(z.counted)}</b></div><div class="list-row"><span>Verschil</span><span class="diff ${z.diff&&Math.abs(z.diff)>=0.01?'neg':'pos-pos'}">${z.diff==null?'—':(z.diff>0?'+ ':z.diff<0?'− ':'')+eur(Math.abs(z.diff))}</span></div>
+    ${z.note?`<p style="margin:12px 0 0">${esc(z.note)}</p>`:''}
+    <div class="modal-foot"><button class="btn" data-x style="margin-right:auto">Exporteren</button><button class="btn primary" data-close autofocus>Sluiten</button></div>`,
+  m=>{m.querySelector('[data-close]').addEventListener('click',closeModal);m.querySelector('[data-x]').addEventListener('click',()=>{const reg=z.register==='Alle kassa’s'?'all':z.register;exportClosing(z,S.sales.filter(s=>s.ts>=keyToTs(z.date)&&s.ts<keyToTs(z.date)+864e5&&(reg==='all'||s.register===reg)))})},true);
+});
+
+/* ---------- Instellingen ---------- */
+function renderSettings(){
+  if(document.activeElement&&document.activeElement.closest('#v-instellingen .form'))return;
+  $('#set-event').value=S.settings.event||'';
+  $('#set-regs').value=regs().join(', ');
+  $('#set-vat').value=S.settings.vat;
+  $('#set-low').value=S.settings.lowDefault;
+  $('#set-float').value=S.settings.float;
+  $('#set-retdays').value=S.settings.retDays;
+  $('#set-mode').textContent=S.mode==='db'?'Producten, voorraad, transacties en afsluitingen worden gedeeld opgeslagen. Iedereen met toegang tot deze pagina werkt met dezelfde voorraad, dus meerdere kassa’s blijven synchroon.':'Gegevens worden lokaal in deze browser bewaard. Open de pagina via claude.ai voor gedeelde opslag tussen kassa’s.';
+  const t=lsGet('theme')||'auto';$$('#set-theme button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===t));
+}
+$('#set-save').addEventListener('click',async()=>{
+  const st={...S.settings,event:$('#set-event').value.trim()||'Mijn event',registers:$('#set-regs').value.split(',').map(s=>s.trim()).filter(Boolean),vat:Math.max(0,parseFloat($('#set-vat').value)||0),lowDefault:Math.max(0,parseInt($('#set-low').value,10)||0),float:Math.max(0,parseFloat($('#set-float').value)||0),retDays:Math.max(0,parseInt($('#set-retdays').value,10)||0)};
+  if(!st.registers.length)st.registers=['Kassa 1'];
+  try{await api.saveSettings(st);document.activeElement.blur();toast('Instellingen opgeslagen')}catch(e){toast('Opslaan mislukt: '+e.message,'bad')}
+});
+bindSeg($('#set-theme'),'t',t=>{applyTheme(t);lsSet('theme',t);render()});
+function applyTheme(t){if(t==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t)}
+$('#set-demo').addEventListener('click',loadDemo);
+$('#set-wipe').addEventListener('click',e=>{
+  const b=e.currentTarget;
+  if(!b.dataset.sure){b.dataset.sure='1';b.textContent='Klik nogmaals om alles te wissen';setTimeout(()=>{b.dataset.sure='';b.textContent='Alle gegevens wissen'},4000);return}
+  b.dataset.sure='';b.disabled=true;b.textContent='Bezig met wissen…';
+  api.wipe().then(()=>{cart=[];credit=null;parked=[];lsSet('parked','[]');toast('Alle gegevens gewist')}).catch(err=>toast('Wissen mislukt: '+err.message,'bad')).finally(()=>{b.disabled=false;b.textContent='Alle gegevens wissen'});
+});
+
+/* ---------- Voorbeelddata ---------- */
+let demoBusy=false;
+async function loadDemo(){
+  if(demoBusy)return;
+  if(S.products.length&&!confirm('Er staan al producten in het systeem. Voorbeelddata wordt ernaast toegevoegd. Doorgaan?'))return;
+  demoBusy=true;toast('Voorbeelddata wordt geladen…');
+  const R=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+  const defs=[['Tour Tee Zwart','T-shirts',35,9.5,['S','M','L','XL','XXL']],['Tour Tee Wit','T-shirts',35,9.5,['S','M','L','XL']],['Dates Back Tee','T-shirts',40,11,['S','M','L','XL']],['Logo Hoodie','Hoodies',65,22,['S','M','L','XL']],['Zip Hoodie Navy','Hoodies',75,26,['M','L','XL']],['Logo Cap','Accessoires',28,6,['']],['Bucket Hat','Accessoires',30,7,['']],['Beanie','Accessoires',25,5,['']],['Tote Bag','Accessoires',18,3.5,['']],['Lanyard','Accessoires',8,1.2,['']],['Vinyl LP','Muziek',32,14,['']],['CD Album','Muziek',15,4,['']],['Poster A2','Print',15,2.5,['']],['Stickerpack','Print',6,0.8,['']],['Tourboek','Print',25,8,['']],['Mok','Overig',16,4,['']],['Sjaal','Overig',30,9,['']]];
+  const regsList=regs().length>1?regs():['Hoofdpodium','Ingang Noord','VIP'];
+  if(regs().length<=1||S.settings.event==='Mijn event')await api.saveSettings({...S.settings,registers:regsList,event:S.settings.event==='Mijn event'?'Zomertour 2026':S.settings.event});
+  let bc=8712345100000;const prods=[],taken=new Set(S.products.map(p=>String(p.sku).toLowerCase()));
+  defs.forEach(([n,c,pr,co,vs])=>vs.forEach(v=>prods.push({id:uid(),name:n,category:c,variant:v,price:pr,cost:co,stock:c==='T-shirts'?R(80,220):c==='Hoodies'?R(40,110):R(25,160),minStock:c==='T-shirts'?20:10,barcode:String(bc++),sku:''})));
+  prods.forEach(p=>{p.sku=makeSku(p.name,p.variant,taken);taken.add(p.sku.toLowerCase())});
+  const weight=p=>({'T-shirts':6,'Hoodies':3,'Accessoires':3,'Muziek':2,'Print':2.5,'Overig':1}[p.category]||1)*(['M','L'].includes(p.variant)?1.6:1);
+  const pool=[];prods.forEach(p=>{for(let i=0;i<Math.round(weight(p)*2);i++)pool.push(p)});
+  const sales=[],base=startOfDay(Date.now()),nowH=new Date().getHours();
+  for(let d=6;d>=0;d--){
+    const count=d===0?R(40,70):R(15,45);
+    for(let k=0;k<count;k++){
+      let h=R(13,23);if(d===0&&h>nowH)h=R(Math.min(10,nowH),Math.max(10,nowH));
+      const ts=base-d*864e5+h*36e5+R(0,59)*6e4+R(0,59999);if(ts>Date.now())continue;
+      const n=Math.random()<.55?1:Math.random()<.7?2:R(3,4),items=[];
+      for(let j=0;j<n;j++){const p=pool[R(0,pool.length-1)];if(p.stock<=1)continue;const ex=items.find(i=>i.pid===p.id);if(ex)ex.qty++;else items.push({pid:p.id,sku:p.sku,name:p.name,variant:p.variant,category:p.category,price:p.price,cost:p.cost,qty:1});p.stock--}
+      if(!items.length)continue;
+      const sub=sum(items,i=>i.price*i.qty),disc=Math.random()<.08?round2(sub*.1):0,reg=regsList[R(0,regsList.length-1)],total=round2(sub-disc);
+      sales.push({id:uid(),type:'sale',ts,register:reg,method:Math.random()<.78?'Pin':Math.random()<.6?'Contant':'QR',receiptNo:reg.replace(/[^A-Za-z0-9]/g,'').slice(0,3).toUpperCase()+'-'+String(ts).slice(-6),items,subtotal:round2(sub),discount:disc,total,paid:total});
+    }
+  }
+  const refunds=[];
+  sales.filter(s=>s.items.some(i=>i.category==='T-shirts'||i.category==='Hoodies')).sort(()=>Math.random()-.5).slice(0,7).forEach((s,k)=>{
+    const it=s.items.find(i=>i.category==='T-shirts'||i.category==='Hoodies'),f=s.subtotal?s.total/s.subtotal:1,ts=Math.min(Date.now()-6e4,s.ts+R(5,90)*6e4),unit=round2(it.price*f);
+    const reason=k%3===2?'Defect of beschadigd':'Verkeerde maat',restock=reason!=='Defect of beschadigd';
+    refunds.push({id:uid(),type:'refund',ts,register:s.register,method:s.method,reason,restock,refOf:s.id,refReceipt:s.receiptNo,receiptNo:'RET-'+String(ts).slice(-6),items:[{...it,qty:1,unit}],subtotal:-unit,discount:0,total:-unit});
+    if(restock){const p=prods.find(x=>x.id===it.pid);if(p)p.stock++}
+  });
+  prods.slice(3,7).forEach((p,i)=>p.stock=[0,4,7,12][i]);
+  try{await api.putProducts(prods);await api.addSales([...sales,...refunds]);toast('Voorbeelddata geladen: '+prods.length+' artikelen, '+sales.length+' bonnen en '+refunds.length+' retouren');go('dashboard')}
+  catch(e){toast('Laden mislukt: '+(e&&e.message||'onbekende fout'),'bad')}
+  demoBusy=false;
+}
+
+/* ---------- Start ---------- */
+applyTheme(lsGet('theme')||'auto');
+const mq=window.matchMedia('(prefers-color-scheme: dark)');if(mq.addEventListener)mq.addEventListener('change',()=>render());
+window.addEventListener('resize',()=>{if(view==='kassa')renderCart()});
+view=VIEWS.includes(location.hash.slice(1))?location.hash.slice(1):'dashboard';
+$$('.nav button').forEach(b=>b.setAttribute('aria-current',b.dataset.view===view?'page':'false'));
+initStore();
+})();
+</script>
+</body>
+</html>

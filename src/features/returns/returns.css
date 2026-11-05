@@ -1,0 +1,36 @@
+.return-modal {
+  width: min(560px, 92vw);
+}
+
+.return-lines {
+  max-height: 260px;
+  overflow-y: auto;
+  margin: 12px 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+.return-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.return-line:last-child {
+  border-bottom: none;
+}
+
+.return-line-name {
+  flex: 1;
+}
+
+.return-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  margin: 14px 0;
+}

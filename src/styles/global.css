@@ -1,0 +1,64 @@
+@import './tokens.css';
+@import '../shared/ui/modal.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  scroll-padding-top: env(safe-area-inset-top, 0px);
+}
+
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.5 var(--body);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  height: 100%;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--display);
+  margin: 0;
+}
+
+.auth-gate-loading,
+.auth-gate-error {
+  height: 100vh;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 24px;
+  text-align: center;
+}
+
+.auth-gate-error {
+  color: var(--bad);
+}

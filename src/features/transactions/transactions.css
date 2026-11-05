@@ -1,0 +1,25 @@
+@import '../inventory/inventory.css';
+@import '../pos/pos.css';
+
+.tx-search {
+  display: block;
+  width: 100%;
+  max-width: 360px;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.tx-empty {
+  color: var(--muted);
+}
+
+.tx-row {
+  cursor: pointer;
+}
+
+.tx-row:hover {
+  background: var(--surface-2);
+}
