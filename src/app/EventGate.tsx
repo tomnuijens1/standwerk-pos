@@ -22,6 +22,8 @@ export function EventGate({ children }: { children: ReactNode }) {
     return (
       <div className="auth-gate-error">
         Geen event gevonden. Heb je supabase/migrations/00002_seed_and_settings_grants.sql al gedraaid?
+        <br />
+        <small>Details: {error.message}</small>
       </div>
     )
   }
