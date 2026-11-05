@@ -70,12 +70,19 @@ export function useStockMovements(eventId: string) {
 export function useAdjustStock(eventId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (input: { productId: string; delta: number; reason: 'delivery' | 'count' | 'correction'; ref: string | null }) => {
+    mutationFn: async (input: {
+      productId: string
+      delta: number
+      reason: 'delivery' | 'count' | 'correction'
+      ref: string | null
+      employeeId?: string | null
+    }) => {
       const { error } = await supabase.rpc('apply_stock_movement', {
         p_product_id: input.productId,
         p_delta: input.delta,
         p_reason: input.reason,
         p_ref: input.ref,
+        p_employee_id: input.employeeId ?? null,
       })
       if (error) throw error
     },

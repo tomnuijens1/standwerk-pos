@@ -15,6 +15,7 @@ export interface CheckoutInput {
   receivedCents: number | null
   creditCents?: number
   creditRefId?: string | null
+  employeeId?: string | null
 }
 
 export async function checkoutSale(input: CheckoutInput) {
@@ -26,6 +27,7 @@ export async function checkoutSale(input: CheckoutInput) {
     p_received_cents: input.receivedCents,
     p_credit_cents: input.creditCents ?? 0,
     p_credit_ref_id: input.creditRefId ?? null,
+    p_employee_id: input.employeeId ?? null,
   })
   if (error) throw error
   return data[0]

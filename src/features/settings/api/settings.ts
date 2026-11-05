@@ -4,7 +4,14 @@ import { supabase } from '../../../shared/supabase/client'
 export function useUpdateEvent() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (patch: { id: string; name?: string; low_stock_default?: number; opening_float_cents?: number; return_days?: number }) => {
+    mutationFn: async (patch: {
+      id: string
+      name?: string
+      low_stock_default?: number
+      opening_float_cents?: number
+      return_days?: number
+      max_discount_percent_without_manager?: number
+    }) => {
       const { id, ...fields } = patch
       const { error } = await supabase.from('events').update(fields).eq('id', id)
       if (error) throw error

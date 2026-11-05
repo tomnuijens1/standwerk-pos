@@ -22,6 +22,19 @@
   font-size: 13px;
 }
 
+.employee-bar {
+  margin: 10px 2px;
+  font-size: 13px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.employee-bar b {
+  color: var(--ink);
+}
+
 .chips {
   display: flex;
   gap: 8px;

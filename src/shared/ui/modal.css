@@ -56,6 +56,45 @@
   font-size: 18px;
 }
 
+.pincode-modal {
+  text-align: center;
+}
+
+.pincode-dots {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.pincode-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: transparent;
+}
+
+.pincode-dot.filled {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.pincode-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.pincode-pad button {
+  padding: 16px 0;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  font: 700 20px var(--display);
+}
+
 .variant-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));

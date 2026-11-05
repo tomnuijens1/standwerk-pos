@@ -15,10 +15,30 @@ export interface Database {
           low_stock_default: number
           opening_float_cents: number
           return_days: number
+          max_discount_percent_without_manager: number
           created_at: string
         }
         Insert: Partial<Database['public']['Tables']['events']['Row']> & { name: string }
         Update: Partial<Database['public']['Tables']['events']['Row']>
+        Relationships: []
+      }
+      employees: {
+        Row: {
+          id: string
+          event_id: string
+          name: string
+          pincode_hash: string
+          role: 'cashier' | 'manager'
+          active: boolean
+          created_at: string
+        }
+        Insert: Partial<Database['public']['Tables']['employees']['Row']> & {
+          event_id: string
+          name: string
+          pincode_hash: string
+          role: 'cashier' | 'manager'
+        }
+        Update: Partial<Database['public']['Tables']['employees']['Row']>
         Relationships: []
       }
       categories: {
@@ -304,6 +324,7 @@ export interface Database {
           p_received_cents?: number | null
           p_credit_cents?: number
           p_credit_ref_id?: string | null
+          p_employee_id?: string | null
         }
         Returns: { sale_id: string; receipt_number: number }[]
       }
@@ -315,6 +336,7 @@ export interface Database {
           p_restock: boolean
           p_ref_sale_id: string | null
           p_items: { product_id: string; qty: number; original_unit_price_cents: number; refunded_unit_cents: number }[]
+          p_employee_id?: string | null
         }
         Returns: { refund_id: string; receipt_number: number }[]
       }
@@ -326,8 +348,26 @@ export interface Database {
           p_ref?: string | null
           p_register_id?: string | null
           p_import_batch_id?: string | null
+          p_employee_id?: string | null
         }
         Returns: Database['public']['Tables']['stock_movements']['Row']
+      }
+      create_employee: {
+        Args: {
+          p_event_id: string
+          p_name: string
+          p_pincode: string
+          p_role: string
+        }
+        Returns: { id: string; name: string; role: 'cashier' | 'manager'; active: boolean }[]
+      }
+      deactivate_employee: {
+        Args: { p_employee_id: string }
+        Returns: undefined
+      }
+      verify_employee_pincode: {
+        Args: { p_event_id: string; p_pincode: string }
+        Returns: { id: string; name: string; role: 'cashier' | 'manager' }[]
       }
       create_product: {
         Args: {

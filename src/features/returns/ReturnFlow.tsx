@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { useCurrentEvent } from '../../app/EventGate'
 import { addCents, cents, formatEuro, multiplyCents, proRataRefundUnit } from '../../shared/money/money'
 import type { Product } from '../../shared/lib/product'
+import { PincodeModal } from '../employees/components/PincodeModal'
+import { useActiveEmployee } from '../employees/useActiveEmployee'
 import type { Credit } from '../pos/hooks/useCart'
 import { fetchSaleForReturn, useCreateRefund, type SaleForReturn } from './api/returns'
 import './returns.css'
@@ -37,7 +39,9 @@ interface Props {
 export function ReturnFlow({ registerId, products, onClose, onCreditIssued }: Props) {
   const event = useCurrentEvent()
   const createRefund = useCreateRefund(event.id)
+  const { employee: activeEmployee } = useActiveEmployee()
 
+  const [showManagerGate, setShowManagerGate] = useState(false)
   const [receiptInput, setReceiptInput] = useState('')
   const [sale, setSale] = useState<SaleForReturn | null>(null)
   const [withoutReceipt, setWithoutReceipt] = useState(false)
@@ -131,16 +135,26 @@ export function ReturnFlow({ registerId, products, onClose, onCreditIssued }: Pr
 
   const visibleProducts = products.filter((p) => (query ? `${p.name} ${p.sku}`.toLowerCase().includes(query.toLowerCase()) : true))
 
+  // Retouren mogen alleen door een manager geboekt worden (zie ook de
+  // server-side check in create_refund). Is de ingelogde medewerker al
+  // manager, dan gaat het direct door; anders vragen we om een
+  // manager-pincode zonder de ingelogde medewerker te wisselen.
   function confirm() {
     if (lines.length === 0) return
-    const defaultRestock = REASONS.find((r) => r.value === reason)?.defaultRestock ?? true
+    if (activeEmployee?.role === 'manager') {
+      submitRefund(activeEmployee.id)
+    } else {
+      setShowManagerGate(true)
+    }
+  }
 
+  function submitRefund(employeeId: string) {
     createRefund.mutate(
       {
         registerId,
         method,
         reason,
-        restock: restock ?? defaultRestock,
+        restock,
         refSaleId: sale?.saleId ?? null,
         items: lines.map((l) => ({
           product_id: l.productId,
@@ -148,6 +162,7 @@ export function ReturnFlow({ registerId, products, onClose, onCreditIssued }: Pr
           original_unit_price_cents: l.originalUnitPriceCents,
           refunded_unit_cents: l.refundedUnitCents,
         })),
+        employeeId,
       },
       {
         onSuccess: ({ refund_id, receipt_number }) => {
@@ -309,6 +324,18 @@ export function ReturnFlow({ registerId, products, onClose, onCreditIssued }: Pr
           </>
         )}
       </div>
+
+      {showManagerGate && (
+        <PincodeModal
+          title="Manager-goedkeuring voor retour"
+          requireRole="manager"
+          onSuccess={(employee) => {
+            setShowManagerGate(false)
+            submitRefund(employee.id)
+          }}
+          onClose={() => setShowManagerGate(false)}
+        />
+      )}
     </div>
   )
 }

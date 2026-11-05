@@ -110,6 +110,7 @@ export interface CreateRefundInput {
   restock: boolean
   refSaleId: string | null
   items: { product_id: string; qty: number; original_unit_price_cents: number; refunded_unit_cents: number }[]
+  employeeId: string
 }
 
 export function useCreateRefund(eventId: string) {
@@ -123,6 +124,7 @@ export function useCreateRefund(eventId: string) {
         p_restock: input.restock,
         p_ref_sale_id: input.refSaleId,
         p_items: input.items,
+        p_employee_id: input.employeeId,
       })
       if (error) throw error
       return data[0]

@@ -4,6 +4,8 @@ import { useCurrentEvent } from '../../app/EventGate'
 import { type Cents, cents, formatEuro } from '../../shared/money/money'
 import { categoryColorVar } from '../../shared/ui/categoryColor'
 import { useRegisters } from '../../shared/supabase/useEvent'
+import { PincodeModal } from '../employees/components/PincodeModal'
+import { useActiveEmployee } from '../employees/useActiveEmployee'
 import { ReturnFlow } from '../returns/ReturnFlow'
 import { useSettings } from '../settings/useSettings'
 import { useCheckout } from './api/checkout'
@@ -25,6 +27,7 @@ export function PosPage() {
   const { data: products = [], isLoading } = useProducts(event.id)
   const { data: registers = [] } = useRegisters(event.id)
   const checkout = useCheckout(event.id)
+  const { employee: activeEmployee, setEmployee } = useActiveEmployee()
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [query, setQuery] = useState('')
@@ -33,6 +36,9 @@ export function PosPage() {
   const [showDiscount, setShowDiscount] = useState(false)
   const [showCash, setShowCash] = useState(false)
   const [showReturn, setShowReturn] = useState(false)
+  const [showLogin, setShowLogin] = useState(false)
+  const [managerOverrideFor, setManagerOverrideFor] = useState<'pin' | 'cash' | 'qr' | null>(null)
+  const [cashEmployeeOverride, setCashEmployeeOverride] = useState<string | undefined>(undefined)
 
   const { lines, discount, credit, addLine, changeQty, setDiscount, setCredit, clear } = useCart()
   const { activeRegisterId, setActiveRegisterId } = useSettings()
@@ -53,6 +59,10 @@ export function PosPage() {
 
   const { resolved, subtotal, discountCents, total, creditCents, amountDue } = cartTotals(lines, products, discount, credit)
   const canPay = resolved.length > 0 && amountDue >= 0
+
+  const discountPercentOfSubtotal = subtotal > 0 ? (discountCents / subtotal) * 100 : 0
+  const needsManagerForDiscount =
+    discountCents > 0 && activeEmployee?.role !== 'manager' && discountPercentOfSubtotal > event.max_discount_percent_without_manager
 
   function handleTileClick(group: ProductGroup) {
     if (group.items.length === 1) {
@@ -82,7 +92,7 @@ export function PosPage() {
     setSearchError(`"${value}" niet gevonden`)
   }
 
-  function finalizeSale(method: 'pin' | 'cash' | 'qr', receivedCents: Cents | null) {
+  function finalizeSale(method: 'pin' | 'cash' | 'qr', receivedCents: Cents | null, employeeIdOverride?: string) {
     if (!canPay || !activeRegister) return
 
     checkout.mutate(
@@ -98,6 +108,7 @@ export function PosPage() {
         receivedCents,
         creditCents,
         creditRefId: credit?.refundId ?? null,
+        employeeId: employeeIdOverride ?? activeEmployee?.id ?? null,
       },
       {
         onSuccess: ({ receipt_number }) => {
@@ -110,6 +121,16 @@ export function PosPage() {
         },
       },
     )
+  }
+
+  function startPayment(method: 'pin' | 'cash' | 'qr') {
+    if (needsManagerForDiscount) {
+      setManagerOverrideFor(method)
+      return
+    }
+    setCashEmployeeOverride(undefined)
+    if (method === 'cash') setShowCash(true)
+    else finalizeSale(method, null)
   }
 
   if (isLoading) return <div className="auth-gate-loading">Producten laden…</div>
@@ -130,6 +151,20 @@ export function PosPage() {
             }}
           />
           {searchError && <p className="error-text search-error">{searchError}</p>}
+        </div>
+        <div className="employee-bar">
+          {activeEmployee ? (
+            <span>
+              Ingelogd als <b>{activeEmployee.name}</b> ({activeEmployee.role === 'manager' ? 'manager' : 'medewerker'})
+              <button className="discount-btn" onClick={() => setShowLogin(true)}>
+                Wissel
+              </button>
+            </span>
+          ) : (
+            <button className="discount-btn" onClick={() => setShowLogin(true)}>
+              Inloggen met pincode
+            </button>
+          )}
         </div>
         {registers.length > 1 && (
           <div className="chips">
@@ -220,6 +255,9 @@ export function PosPage() {
             <span>Totaal</span>
             <span className="amount">{formatEuro(total)}</span>
           </div>
+          {needsManagerForDiscount && (
+            <p className="error-text">Korting boven {event.max_discount_percent_without_manager}% vereist een manager-pincode bij afrekenen.</p>
+          )}
           {credit && (
             <div className="sum-row credit-row">
               <span>{credit.label}</span>
@@ -237,13 +275,13 @@ export function PosPage() {
           )}
         </div>
         <div className="pay">
-          <button className="main" disabled={!canPay || checkout.isPending} onClick={() => finalizeSale('pin', null)}>
+          <button className="main" disabled={!canPay || checkout.isPending} onClick={() => startPayment('pin')}>
             Pin
           </button>
-          <button disabled={!canPay || checkout.isPending} onClick={() => setShowCash(true)}>
+          <button disabled={!canPay || checkout.isPending} onClick={() => startPayment('cash')}>
             Contant
           </button>
-          <button disabled={!canPay || checkout.isPending} onClick={() => finalizeSale('qr', null)}>
+          <button disabled={!canPay || checkout.isPending} onClick={() => startPayment('qr')}>
             QR
           </button>
         </div>
@@ -273,7 +311,7 @@ export function PosPage() {
         <CashPaymentModal
           amountDue={cents(Math.max(0, amountDue))}
           onClose={() => setShowCash(false)}
-          onConfirm={(received) => finalizeSale('cash', received)}
+          onConfirm={(received) => finalizeSale('cash', received, cashEmployeeOverride)}
         />
       )}
 
@@ -286,6 +324,35 @@ export function PosPage() {
             setCredit(c)
             setShowReturn(false)
           }}
+        />
+      )}
+
+      {showLogin && (
+        <PincodeModal
+          title="Inloggen met pincode"
+          onSuccess={(employee) => {
+            setEmployee(employee)
+            setShowLogin(false)
+          }}
+          onClose={() => setShowLogin(false)}
+        />
+      )}
+
+      {managerOverrideFor && (
+        <PincodeModal
+          title="Manager-goedkeuring voor korting"
+          requireRole="manager"
+          onSuccess={(employee) => {
+            const method = managerOverrideFor
+            setManagerOverrideFor(null)
+            if (method === 'cash') {
+              setCashEmployeeOverride(employee.id)
+              setShowCash(true)
+            } else {
+              finalizeSale(method, null, employee.id)
+            }
+          }}
+          onClose={() => setManagerOverrideFor(null)}
         />
       )}
     </div>

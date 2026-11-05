@@ -8,6 +8,7 @@ interface EventRow {
   low_stock_default: number
   opening_float_cents: number
   return_days: number
+  max_discount_percent_without_manager: number
 }
 
 const EventContext = createContext<EventRow | null>(null)
