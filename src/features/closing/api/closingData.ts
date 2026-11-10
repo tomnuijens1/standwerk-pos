@@ -171,7 +171,12 @@ export async function saveClosing(input: {
     discount_cents: input.summary.discountCents,
     vat_cents: input.summary.vatCents,
     items_count: input.summary.itemsCount,
-    methods: Object.fromEntries(input.summary.methods.map((m) => [m.method, { in: m.inCents, out: m.outCents, n: m.count }])),
+    // Object.fromEntries vermeden (ontbreekt op een oudere/niet-bijgewerkte
+    // Android-WebView, bijv. op een betaalterminal): handmatig opbouwen.
+    methods: input.summary.methods.reduce<Record<string, { in: number; out: number; n: number }>>((acc, m) => {
+      acc[m.method] = { in: m.inCents, out: m.outCents, n: m.count }
+      return acc
+    }, {}),
     note: input.note || null,
   })
   if (error) throw error
