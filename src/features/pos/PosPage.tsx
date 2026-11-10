@@ -6,6 +6,7 @@ import { categoryColorVar } from '../../shared/ui/categoryColor'
 import { useRegisters } from '../../shared/supabase/useEvent'
 import { PincodeModal } from '../employees/components/PincodeModal'
 import { useActiveEmployee } from '../employees/useActiveEmployee'
+import { getPaymentProvider } from '../payments'
 import { ReturnFlow } from '../returns/ReturnFlow'
 import { useSettings } from '../settings/useSettings'
 import { useCheckout } from './api/checkout'
@@ -92,8 +93,26 @@ export function PosPage() {
     setSearchError(`"${value}" niet gevonden`)
   }
 
-  function finalizeSale(method: 'pin' | 'cash' | 'qr', receivedCents: Cents | null, employeeIdOverride?: string) {
+  async function finalizeSale(method: 'pin' | 'cash' | 'qr', receivedCents: Cents | null, employeeIdOverride?: string) {
     if (!canPay || !activeRegister) return
+
+    // Pin/QR gaan via de PaymentProvider-adapter (doc 04): pas bij "geslaagd"
+    // wordt de bon geboekt en de voorraad afgeboekt. Contant heeft geen
+    // terminal, dat blijft een directe boeking na het invoeren van het
+    // ontvangen bedrag.
+    if (method !== 'cash') {
+      const provider = getPaymentProvider()
+      const { paymentId } = await provider.startPayment({
+        amountCents: amountDue,
+        reference: `${activeRegister.code}-pending-${crypto.randomUUID()}`,
+        terminalId: activeRegister.id,
+      })
+      const status = await provider.getStatus(paymentId)
+      if (status !== 'succeeded') {
+        window.alert(status === 'cancelled' ? 'Betaling geannuleerd' : 'Betaling niet gelukt')
+        return
+      }
+    }
 
     checkout.mutate(
       {
