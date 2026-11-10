@@ -46,9 +46,13 @@ jobs:
         run: npx cap sync android
 
       - name: Zet de signing-keystore klaar (uit GitHub Secrets, nooit gecommit)
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        # "secrets" mag niet rechtstreeks in een if-voorwaarde gebruikt worden
+        # (GitHub Actions-beperking); daarom eerst in een env-variabele zetten.
+        if: env.ANDROID_KEYSTORE_BASE64 != ''
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         working-directory: android
-        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > release.keystore
+        run: echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > release.keystore
 
       - name: Bouw de release-APK
         working-directory: android
