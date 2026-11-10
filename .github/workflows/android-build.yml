@@ -1,0 +1,63 @@
+name: Build Android APK
+
+# Bouwt de Capacitor-Android-wrapper als downloadbare, ondertekende APK.
+# Lokaal is hier geen Java/Android-SDK beschikbaar, dus deze build draait op
+# GitHub's eigen runners (die alles al voorgeïnstalleerd hebben). Download de
+# APK via de "Summary"-pagina van een voltooide run (Actions-tab), onder
+# "Artifacts".
+#
+# Vereist twee repository secrets (eenmalig aanmaken, zie
+# generate-keystore.yml): ANDROID_KEYSTORE_BASE64 en ANDROID_KEYSTORE_PASSWORD.
+# Zonder die secrets bouwt deze workflow een ONGETEKENDE APK (werkt niet voor
+# een echte installatie, wel bruikbaar om de build zelf te controleren).
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'android/**'
+      - 'capacitor.config.ts'
+      - 'package.json'
+      - '.github/workflows/android-build.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Installeer afhankelijkheden
+        run: npm ci
+
+      - name: Bouw de website
+        run: npm run build
+
+      - name: Synchroniseer web-assets naar het Android-project
+        run: npx cap sync android
+
+      - name: Zet de signing-keystore klaar (uit GitHub Secrets, nooit gecommit)
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        working-directory: android
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > release.keystore
+
+      - name: Bouw de release-APK
+        working-directory: android
+        env:
+          STANDWERK_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: ./gradlew assembleRelease
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: standwerk-pos-android
+          path: android/app/build/outputs/apk/release/*.apk
+          retention-days: 90
