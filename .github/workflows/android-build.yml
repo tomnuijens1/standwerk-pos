@@ -40,6 +40,9 @@ jobs:
         run: npm ci
 
       - name: Bouw de website
+        env:
+          VITE_SUPABASE_URL: https://obftxhkuxtxphuihgyus.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_lK787MMlq3nJHq3FOwEXkQ_bv186xaA
         run: npm run build
 
       - name: Synchroniseer web-assets naar het Android-project
