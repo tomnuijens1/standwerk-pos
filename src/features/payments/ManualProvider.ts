@@ -1,3 +1,4 @@
+import { uuid } from '../../shared/lib/uuid'
 import type { PaymentProvider, PaymentStatus, RefundInput, StartPaymentInput } from './PaymentProvider'
 
 /**
@@ -9,7 +10,7 @@ import type { PaymentProvider, PaymentStatus, RefundInput, StartPaymentInput } f
  */
 export class ManualProvider implements PaymentProvider {
   async startPayment(_input: StartPaymentInput): Promise<{ paymentId: string }> {
-    return { paymentId: crypto.randomUUID() }
+    return { paymentId: uuid() }
   }
 
   async getStatus(_paymentId: string): Promise<PaymentStatus> {
@@ -21,6 +22,6 @@ export class ManualProvider implements PaymentProvider {
   }
 
   async refund(_input: RefundInput): Promise<{ refundId: string }> {
-    return { refundId: crypto.randomUUID() }
+    return { refundId: uuid() }
   }
 }

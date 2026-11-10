@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCurrentEvent } from '../../app/EventGate'
 import { type Cents, cents, formatEuro } from '../../shared/money/money'
+import { uuid } from '../../shared/lib/uuid'
 import { categoryColorVar } from '../../shared/ui/categoryColor'
 import { useRegisters } from '../../shared/supabase/useEvent'
 import { PincodeModal } from '../employees/components/PincodeModal'
@@ -104,7 +105,7 @@ export function PosPage() {
       const provider = getPaymentProvider()
       const { paymentId } = await provider.startPayment({
         amountCents: amountDue,
-        reference: `${activeRegister.code}-pending-${crypto.randomUUID()}`,
+        reference: `${activeRegister.code}-pending-${uuid()}`,
         terminalId: activeRegister.id,
       })
       const status = await provider.getStatus(paymentId)

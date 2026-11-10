@@ -5,6 +5,13 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
+  build: {
+    // De Adyen S1F2-terminal (Android 9) en een verouderde Android-WebView
+    // kunnen recentere syntax niet altijd verwerken. Een lager target laat
+    // esbuild dat soort syntax (optional chaining, nullish coalescing, etc.)
+    // terugbouwen naar breed ondersteunde vormen.
+    target: 'es2017',
+  },
   plugins: [
     react(),
     VitePWA({
