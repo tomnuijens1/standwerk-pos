@@ -65,6 +65,7 @@ export interface Database {
           code: string
           current_receipt_no: number
           active: boolean
+          terminal_id: string | null
           created_at: string
         }
         Insert: Partial<Database['public']['Tables']['registers']['Row']> & {

@@ -3,7 +3,7 @@ import { useCurrentEvent } from '../../app/EventGate'
 import { cents, formatEuro, parseEuroInputToCents } from '../../shared/money/money'
 import { useCategories, useRegisters } from '../../shared/supabase/useEvent'
 import { useCreateEmployee, useDeactivateEmployee, useEmployees } from '../employees/api/employees'
-import { useCreateRegister, useUpdateCategoryVat, useUpdateEvent } from './api/settings'
+import { useCreateRegister, useUpdateCategoryVat, useUpdateEvent, useUpdateRegisterTerminal } from './api/settings'
 import { useSettings } from './useSettings'
 import './settings.css'
 
@@ -17,6 +17,7 @@ export function SettingsPage() {
   const updateEvent = useUpdateEvent()
   const createRegister = useCreateRegister(event.id)
   const updateCategoryVat = useUpdateCategoryVat(event.id)
+  const updateRegisterTerminal = useUpdateRegisterTerminal(event.id)
   const createEmployee = useCreateEmployee(event.id)
   const deactivateEmployee = useDeactivateEmployee(event.id)
 
@@ -47,6 +48,26 @@ export function SettingsPage() {
           ))}
         </select>
       </label>
+
+      <fieldset>
+        <legend>Betaalterminals</legend>
+        <p className="amount-due">
+          Vul per kassa het terminal-ID in (bij Adyen het POIID, bijv. &quot;S1F2-000158225400001&quot;). Laat leeg als deze kassa
+          geen terminal heeft — dan bevestig je de pinbetaling handmatig.
+        </p>
+        {registers.map((r) => (
+          <label key={r.id}>
+            {r.name} ({r.code})
+            <input
+              defaultValue={r.terminal_id ?? ''}
+              placeholder="bijv. S1F2-000158225400001"
+              onBlur={(e) =>
+                updateRegisterTerminal.mutate({ registerId: r.id, terminalId: e.target.value.trim() || null })
+              }
+            />
+          </label>
+        ))}
+      </fieldset>
 
       <fieldset>
         <legend>Nieuwe kassa toevoegen</legend>

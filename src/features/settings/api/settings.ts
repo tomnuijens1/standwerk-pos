@@ -31,6 +31,17 @@ export function useCreateRegister(eventId: string) {
   })
 }
 
+export function useUpdateRegisterTerminal(eventId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: { registerId: string; terminalId: string | null }) => {
+      const { error } = await supabase.from('registers').update({ terminal_id: input.terminalId }).eq('id', input.registerId)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['registers', eventId] }),
+  })
+}
+
 export function useUpdateCategoryVat(eventId: string) {
   const queryClient = useQueryClient()
   return useMutation({

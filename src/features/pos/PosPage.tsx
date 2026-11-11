@@ -102,15 +102,20 @@ export function PosPage() {
     // terminal, dat blijft een directe boeking na het invoeren van het
     // ontvangen bedrag.
     if (method !== 'cash') {
-      const provider = getPaymentProvider()
-      const { paymentId } = await provider.startPayment({
-        amountCents: amountDue,
-        reference: `${activeRegister.code}-pending-${uuid()}`,
-        terminalId: activeRegister.id,
-      })
-      const status = await provider.getStatus(paymentId)
-      if (status !== 'succeeded') {
-        window.alert(status === 'cancelled' ? 'Betaling geannuleerd' : 'Betaling niet gelukt')
+      const provider = getPaymentProvider({ terminalId: activeRegister.terminal_id, registerId: activeRegister.id })
+      try {
+        const { paymentId } = await provider.startPayment({
+          amountCents: amountDue,
+          reference: `${activeRegister.code}-pending-${uuid()}`,
+          terminalId: activeRegister.terminal_id ?? activeRegister.id,
+        })
+        const status = await provider.getStatus(paymentId)
+        if (status !== 'succeeded') {
+          window.alert(status === 'cancelled' ? 'Betaling geannuleerd' : 'Betaling niet gelukt')
+          return
+        }
+      } catch (e) {
+        window.alert(`Betaling mislukt: ${(e as Error).message}`)
         return
       }
     }
