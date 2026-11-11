@@ -21,6 +21,10 @@ on:
       - 'package.json'
       - '.github/workflows/android-build.yml'
 
+# Nodig om de APK als release te kunnen publiceren (zie laatste stap).
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -68,3 +72,17 @@ jobs:
           name: standwerk-pos-android
           path: android/app/build/outputs/apk/release/*.apk
           retention-days: 90
+
+      # Publiceert de APK onder een vaste "laatste versie"-release, zodat er
+      # één stabiele downloadlink is die altijd naar de nieuwste build wijst:
+      # https://github.com/<owner>/<repo>/releases/latest/download/standwerk-pos.apk
+      # Scheelt het handmatige downloaden + doorsturen bij elke update.
+      - name: Publiceer als "laatste versie"-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/release/*.apk standwerk-pos.apk
+          gh release delete laatste --yes --cleanup-tag 2>/dev/null || true
+          gh release create laatste standwerk-pos.apk \
+            --title "Laatste versie" \
+            --notes "Automatisch gebouwd uit commit ${{ github.sha }}. Scan of open de link hieronder op het Android-apparaat om te installeren."
