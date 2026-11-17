@@ -95,9 +95,29 @@ begin
 end;
 $$;
 
-drop function if exists checkout_sale(uuid, text, jsonb, integer, integer, integer, uuid, uuid);
-drop function if exists create_refund(uuid, text, text, boolean, uuid, jsonb, uuid);
-drop function if exists apply_stock_movement(uuid, integer, text, text, uuid, uuid, uuid);
+-- Alle bestaande versies van deze functies weghalen, ongeacht hun
+-- argumentenlijst. Eerdere migraties hebben de argumenten een paar keer
+-- gewijzigd; met een vaste DROP-regel per signatuur blijft er makkelijk een
+-- oude versie staan. Die zou dan naast de nieuwe blijven bestaan -- inclusief
+-- de oude versie zónder rolcontrole, wat precies het gat is dat we dichten.
+do $$
+declare
+  r record;
+begin
+  for r in
+    select p.oid::regprocedure as sig
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname in (
+        'checkout_sale', 'create_refund', 'apply_stock_movement',
+        'create_product', 'update_product_details',
+        'create_employee', 'deactivate_employee'
+      )
+  loop
+    execute 'drop function if exists ' || r.sig;
+  end loop;
+end $$;
 
 create or replace function checkout_sale(
   p_register_id uuid,
@@ -463,11 +483,6 @@ $$;
 -- 4. Medewerkersbeheer alleen door een manager
 -- ---------------------------------------------------------------------------
 
--- Oude signaturen zonder rolcontrole weghalen; anders blijven ze als extra
--- overload bestaan en kan de beveiliging eromheen aangeroepen worden.
-drop function if exists create_employee(uuid, text, text, text);
-drop function if exists deactivate_employee(uuid);
-
 -- De allereerste manager kan nog zonder bestaande manager aangemaakt worden
 -- (anders kom je er nooit in); daarna is een manager-pincode vereist.
 create or replace function create_employee(
@@ -565,9 +580,6 @@ $$;
 -- ---------------------------------------------------------------------------
 -- 6. Productbeheer alleen door een manager
 -- ---------------------------------------------------------------------------
-
-drop function if exists create_product(uuid, text, text, uuid, text, integer, integer, integer, text, smallint);
-drop function if exists update_product_details(uuid, text, uuid, text, integer, integer, integer, text, smallint, boolean);
 
 create or replace function create_product(
   p_event_id uuid,
