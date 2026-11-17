@@ -17,13 +17,13 @@
 -- 1. Pincode-pogingen begrenzen
 -- ---------------------------------------------------------------------------
 
-create table pincode_attempts (
+create table if not exists pincode_attempts (
   id          bigserial primary key,
   event_id    uuid not null references events(id) on delete cascade,
   succeeded   boolean not null,
   attempted_at timestamptz not null default now()
 );
-create index pincode_attempts_recent on pincode_attempts (event_id, attempted_at desc);
+create index if not exists pincode_attempts_recent on pincode_attempts (event_id, attempted_at desc);
 
 alter table pincode_attempts enable row level security;
 -- Geen policies: alleen de SECURITY DEFINER-functie hieronder mag erbij.
@@ -157,7 +157,7 @@ begin
 
   if v_subtotal > 0 and p_discount_cents > 0 and v_role <> 'manager'
      and (p_discount_cents::numeric / v_subtotal * 100) > v_max_pct then
-    raise exception 'PERMISSION_DENIED: korting boven %% vereist een manager', v_max_pct using errcode = 'P0001';
+    raise exception 'PERMISSION_DENIED: korting boven % procent vereist een manager', v_max_pct using errcode = 'P0001';
   end if;
 
   update registers set current_receipt_no = current_receipt_no + 1
@@ -462,6 +462,11 @@ $$;
 -- ---------------------------------------------------------------------------
 -- 4. Medewerkersbeheer alleen door een manager
 -- ---------------------------------------------------------------------------
+
+-- Oude signaturen zonder rolcontrole weghalen; anders blijven ze als extra
+-- overload bestaan en kan de beveiliging eromheen aangeroepen worden.
+drop function if exists create_employee(uuid, text, text, text);
+drop function if exists deactivate_employee(uuid);
 
 -- De allereerste manager kan nog zonder bestaande manager aangemaakt worden
 -- (anders kom je er nooit in); daarna is een manager-pincode vereist.

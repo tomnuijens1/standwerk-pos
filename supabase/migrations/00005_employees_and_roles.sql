@@ -127,7 +127,7 @@ begin
 
   if v_subtotal > 0 and p_discount_cents > 0 and v_role <> 'manager'
      and (p_discount_cents::numeric / v_subtotal * 100) > v_max_pct then
-    raise exception 'PERMISSION_DENIED: korting boven %% vereist een manager', v_max_pct using errcode = 'P0001';
+    raise exception 'PERMISSION_DENIED: korting boven % procent vereist een manager', v_max_pct using errcode = 'P0001';
   end if;
 
   update registers set current_receipt_no = current_receipt_no + 1
