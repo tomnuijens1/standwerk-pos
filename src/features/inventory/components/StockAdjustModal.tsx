@@ -39,10 +39,10 @@ export function StockAdjustModal({ eventId, product, onClose }: Props) {
       setShowManagerGate(true)
       return
     }
-    submit(activeEmployee?.id)
+    submit(activeEmployee?.id ?? '')
   }
 
-  function submit(employeeId: string | undefined) {
+  function submit(employeeId: string) {
     adjust.mutate(
       { productId: product.id, delta, reason: type, ref: note || null, employeeId },
       {

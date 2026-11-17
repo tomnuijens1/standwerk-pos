@@ -9,7 +9,7 @@ const NAV_ITEMS = [
   { to: '/voorraad', label: 'Voorraad', end: false, managerOnly: false },
   { to: '/transacties', label: 'Transacties', end: false, managerOnly: false },
   { to: '/dagafsluiting', label: 'Dagafsluiting', end: false, managerOnly: true },
-  { to: '/instellingen', label: 'Instellingen', end: false, managerOnly: false },
+  { to: '/instellingen', label: 'Instellingen', end: false, managerOnly: true },
 ]
 
 export function AppLayout({ children }: { children: ReactNode }) {

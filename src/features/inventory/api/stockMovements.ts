@@ -75,14 +75,14 @@ export function useAdjustStock(eventId: string) {
       delta: number
       reason: 'delivery' | 'count' | 'correction'
       ref: string | null
-      employeeId?: string | null
+      employeeId: string
     }) => {
       const { error } = await supabase.rpc('apply_stock_movement', {
         p_product_id: input.productId,
         p_delta: input.delta,
         p_reason: input.reason,
         p_ref: input.ref,
-        p_employee_id: input.employeeId ?? null,
+        p_employee_id: input.employeeId,
       })
       if (error) throw error
     },

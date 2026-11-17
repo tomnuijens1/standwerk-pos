@@ -320,12 +320,12 @@ export interface Database {
         Args: {
           p_register_id: string
           p_method: string
-          p_items: { product_id: string; qty: number; unit_price_cents: number }[]
+          p_items: { product_id: string; qty: number }[]
+          p_employee_id: string
           p_discount_cents?: number
           p_received_cents?: number | null
           p_credit_cents?: number
           p_credit_ref_id?: string | null
-          p_employee_id?: string | null
         }
         Returns: { sale_id: string; receipt_number: number }[]
       }
@@ -336,8 +336,8 @@ export interface Database {
           p_reason: string
           p_restock: boolean
           p_ref_sale_id: string | null
-          p_items: { product_id: string; qty: number; original_unit_price_cents: number; refunded_unit_cents: number }[]
-          p_employee_id?: string | null
+          p_items: { product_id: string; qty: number }[]
+          p_employee_id: string
         }
         Returns: { refund_id: string; receipt_number: number }[]
       }
@@ -346,10 +346,10 @@ export interface Database {
           p_product_id: string
           p_delta: number
           p_reason: string
+          p_employee_id: string
           p_ref?: string | null
           p_register_id?: string | null
           p_import_batch_id?: string | null
-          p_employee_id?: string | null
         }
         Returns: Database['public']['Tables']['stock_movements']['Row']
       }
@@ -359,11 +359,12 @@ export interface Database {
           p_name: string
           p_pincode: string
           p_role: string
+          p_employee_id?: string | null
         }
         Returns: { id: string; name: string; role: 'cashier' | 'manager'; active: boolean }[]
       }
       deactivate_employee: {
-        Args: { p_employee_id: string }
+        Args: { p_employee_id: string; p_acting_employee_id?: string | null }
         Returns: undefined
       }
       verify_employee_pincode: {
@@ -379,6 +380,7 @@ export interface Database {
           p_variant: string
           p_price_cents: number
           p_cost_cents: number
+          p_employee_id: string
           p_min_stock?: number | null
           p_barcode?: string | null
           p_vat_rate_bp?: number | null
@@ -397,8 +399,58 @@ export interface Database {
           p_barcode: string | null
           p_vat_rate_bp: number | null
           p_active: boolean
+          p_employee_id: string
         }
         Returns: Database['public']['Tables']['products']['Row']
+      }
+      update_event_settings: {
+        Args: {
+          p_event_id: string
+          p_employee_id: string
+          p_name?: string | null
+          p_low_stock_default?: number | null
+          p_opening_float_cents?: number | null
+          p_return_days?: number | null
+          p_max_discount_percent?: number | null
+        }
+        Returns: undefined
+      }
+      upsert_register: {
+        Args: {
+          p_event_id: string
+          p_employee_id: string
+          p_register_id?: string | null
+          p_name?: string | null
+          p_code?: string | null
+          p_terminal_id?: string | null
+        }
+        Returns: Database['public']['Tables']['registers']['Row']
+      }
+      update_category_vat: {
+        Args: { p_category_id: string; p_employee_id: string; p_vat_rate_bp: number }
+        Returns: undefined
+      }
+      save_closing: {
+        Args: {
+          p_event_id: string
+          p_employee_id: string
+          p_register_id: string | null
+          p_date: string
+          p_opening_float_cents: number
+          p_expected_cents: number
+          p_counted_cents: number
+          p_diff_cents: number
+          p_tx_count: number
+          p_net_cents: number
+          p_gross_cents: number
+          p_refunds_cents: number
+          p_discount_cents: number
+          p_vat_cents: number
+          p_items_count: number
+          p_methods: Record<string, { in: number; out: number; n: number }>
+          p_note?: string | null
+        }
+        Returns: undefined
       }
     }
   }

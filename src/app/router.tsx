@@ -29,7 +29,14 @@ export function AppRouter() {
           </RequireManager>
         }
       />
-      <Route path="/instellingen" element={<SettingsPage />} />
+      <Route
+        path="/instellingen"
+        element={
+          <RequireManager>
+            <SettingsPage />
+          </RequireManager>
+        }
+      />
     </Routes>
   )
 }

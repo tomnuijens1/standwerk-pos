@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useCurrentEvent } from '../../app/EventGate'
 import { cents, formatEuro, parseEuroInputToCents } from '../../shared/money/money'
 import { useRegisters } from '../../shared/supabase/useEvent'
+import { useActiveEmployee } from '../employees/useActiveEmployee'
 import { fetchClosingSummary, saveClosing, useClosingSummary } from './api/closingData'
 import './closing.css'
 
@@ -15,6 +16,7 @@ function todayKey() {
 export function ClosingPage() {
   const event = useCurrentEvent()
   const { data: registers = [] } = useRegisters(event.id)
+  const { employee: activeEmployee } = useActiveEmployee()
 
   const [registerId, setRegisterId] = useState<string | null>(null)
   const [date, setDate] = useState(todayKey())
@@ -52,6 +54,7 @@ export function ClosingPage() {
     try {
       await saveClosing({
         eventId: event.id,
+        employeeId: activeEmployee?.id ?? '',
         registerId,
         date,
         openingFloatCents,

@@ -26,12 +26,13 @@ export function useEmployees(eventId: string) {
 export function useCreateEmployee(eventId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (input: { name: string; pincode: string; role: 'cashier' | 'manager' }) => {
+    mutationFn: async (input: { name: string; pincode: string; role: 'cashier' | 'manager'; actingEmployeeId: string | null }) => {
       const { data, error } = await supabase.rpc('create_employee', {
         p_event_id: eventId,
         p_name: input.name,
         p_pincode: input.pincode,
         p_role: input.role,
+        p_employee_id: input.actingEmployeeId,
       })
       if (error) throw error
       return data[0]
@@ -43,8 +44,11 @@ export function useCreateEmployee(eventId: string) {
 export function useDeactivateEmployee(eventId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (employeeId: string) => {
-      const { error } = await supabase.rpc('deactivate_employee', { p_employee_id: employeeId })
+    mutationFn: async (input: { employeeId: string; actingEmployeeId: string | null }) => {
+      const { error } = await supabase.rpc('deactivate_employee', {
+        p_employee_id: input.employeeId,
+        p_acting_employee_id: input.actingEmployeeId,
+      })
       if (error) throw error
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['employees', eventId] }),

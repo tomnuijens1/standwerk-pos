@@ -147,6 +147,7 @@ export function useClosingSummary(eventId: string, registerId: string | null, da
 
 export async function saveClosing(input: {
   eventId: string
+  employeeId: string
   registerId: string | null
   date: string
   openingFloatCents: number
@@ -156,28 +157,29 @@ export async function saveClosing(input: {
   summary: ClosingSummary
   note: string
 }) {
-  const { error } = await supabase.from('closings').insert({
-    event_id: input.eventId,
-    register_id: input.registerId,
-    date: input.date,
-    opening_float_cents: input.openingFloatCents,
-    expected_cents: input.expectedCents,
-    counted_cents: input.countedCents,
-    diff_cents: input.diffCents,
-    tx_count: input.summary.txCount,
-    net_cents: input.summary.netCents,
-    gross_cents: input.summary.grossCents,
-    refunds_cents: input.summary.refundsCents,
-    discount_cents: input.summary.discountCents,
-    vat_cents: input.summary.vatCents,
-    items_count: input.summary.itemsCount,
+  const { error } = await supabase.rpc('save_closing', {
+    p_event_id: input.eventId,
+    p_employee_id: input.employeeId,
+    p_register_id: input.registerId,
+    p_date: input.date,
+    p_opening_float_cents: input.openingFloatCents,
+    p_expected_cents: input.expectedCents,
+    p_counted_cents: input.countedCents,
+    p_diff_cents: input.diffCents,
+    p_tx_count: input.summary.txCount,
+    p_net_cents: input.summary.netCents,
+    p_gross_cents: input.summary.grossCents,
+    p_refunds_cents: input.summary.refundsCents,
+    p_discount_cents: input.summary.discountCents,
+    p_vat_cents: input.summary.vatCents,
+    p_items_count: input.summary.itemsCount,
     // Object.fromEntries vermeden (ontbreekt op een oudere/niet-bijgewerkte
     // Android-WebView, bijv. op een betaalterminal): handmatig opbouwen.
-    methods: input.summary.methods.reduce<Record<string, { in: number; out: number; n: number }>>((acc, m) => {
+    p_methods: input.summary.methods.reduce<Record<string, { in: number; out: number; n: number }>>((acc, m) => {
       acc[m.method] = { in: m.inCents, out: m.outCents, n: m.count }
       return acc
     }, {}),
-    note: input.note || null,
+    p_note: input.note || null,
   })
   if (error) throw error
 }

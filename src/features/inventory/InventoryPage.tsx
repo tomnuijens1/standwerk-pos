@@ -3,6 +3,7 @@ import { useCurrentEvent } from '../../app/EventGate'
 import { formatEuro } from '../../shared/money/money'
 import type { Product } from '../../shared/lib/product'
 import { useCategories } from '../../shared/supabase/useEvent'
+import { useActiveEmployee } from '../employees/useActiveEmployee'
 import { useProducts } from '../pos/api/products'
 import { useImportPlan } from './api/products'
 import { ImportWizard } from './components/ImportWizard'
@@ -15,6 +16,7 @@ export function InventoryPage() {
   const event = useCurrentEvent()
   const { data: products = [], isLoading } = useProducts(event.id)
   const { data: categories = [] } = useCategories(event.id)
+  const { employee: activeEmployee } = useActiveEmployee()
   const [tab, setTab] = useState<'products' | 'movements'>('products')
   const [showImport, setShowImport] = useState(false)
   const [adjustProduct, setAdjustProduct] = useState<Product | null>(null)
@@ -99,7 +101,7 @@ export function InventoryPage() {
           onClose={() => setShowImport(false)}
           onConfirm={(plan, filename) => {
             importPlan.mutate(
-              { plan, filename },
+              { plan, filename, employeeId: activeEmployee?.id ?? '' },
               {
                 onSuccess: () => setShowImport(false),
                 onError: (e: Error) => window.alert(`Importeren mislukt: ${e.message}`),

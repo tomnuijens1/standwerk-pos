@@ -6,6 +6,7 @@ async function createProduct(
   eventId: string,
   categoryIdByName: Map<string, string>,
   p: ImportPlan['newProducts'][number],
+  employeeId: string,
 ) {
   const categoryId = categoryIdByName.get(p.category.toLowerCase())
   if (!categoryId) throw new Error(`Onbekende categorie "${p.category}" — maak die eerst aan bij Instellingen`)
@@ -20,12 +21,13 @@ async function createProduct(
     p_cost_cents: p.costCents,
     p_min_stock: p.minStock,
     p_barcode: p.barcode,
+    p_employee_id: employeeId,
   })
   if (error) throw error
   return data
 }
 
-async function updateProduct(categoryIdByName: Map<string, string>, p: ImportPlan['updatedProducts'][number]) {
+async function updateProduct(categoryIdByName: Map<string, string>, p: ImportPlan['updatedProducts'][number], employeeId: string) {
   const categoryId = categoryIdByName.get(p.category.toLowerCase())
   if (!categoryId) throw new Error(`Onbekende categorie "${p.category}" — maak die eerst aan bij Instellingen`)
 
@@ -40,15 +42,17 @@ async function updateProduct(categoryIdByName: Map<string, string>, p: ImportPla
     p_barcode: p.barcode,
     p_vat_rate_bp: null,
     p_active: true,
+    p_employee_id: employeeId,
   })
   if (error) throw error
 }
 
-async function applyStockMovement(productId: string, delta: number, filename: string) {
+async function applyStockMovement(productId: string, delta: number, filename: string, employeeId: string) {
   const { error } = await supabase.rpc('apply_stock_movement', {
     p_product_id: productId,
     p_delta: delta,
     p_reason: 'import',
+    p_employee_id: employeeId,
     p_ref: filename,
   })
   if (error) throw error
@@ -57,22 +61,22 @@ async function applyStockMovement(productId: string, delta: number, filename: st
 export function useImportPlan(eventId: string, categoryIdByName: Map<string, string>) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ plan, filename }: { plan: ImportPlan; filename: string }) => {
+    mutationFn: async ({ plan, filename, employeeId }: { plan: ImportPlan; filename: string; employeeId: string }) => {
       const createdIds = new Map<string, string>() // sku -> product id
 
       for (const p of plan.newProducts) {
-        const created = await createProduct(eventId, categoryIdByName, p)
+        const created = await createProduct(eventId, categoryIdByName, p, employeeId)
         createdIds.set(p.sku.toLowerCase(), created.id)
       }
 
       for (const p of plan.updatedProducts) {
-        await updateProduct(categoryIdByName, p)
+        await updateProduct(categoryIdByName, p, employeeId)
       }
 
       for (const m of plan.movements) {
         const productId = m.productId ?? createdIds.get(m.sku.toLowerCase())
         if (!productId) continue
-        await applyStockMovement(productId, m.delta, filename)
+        await applyStockMovement(productId, m.delta, filename, employeeId)
       }
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products', eventId] }),

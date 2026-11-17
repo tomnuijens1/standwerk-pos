@@ -97,12 +97,25 @@ export function PosPage() {
   async function finalizeSale(method: 'pin' | 'cash' | 'qr', receivedCents: Cents | null, employeeIdOverride?: string) {
     if (!canPay || !activeRegister) return
 
+    // Elke boeking hoort bij een medewerker; de server weigert een bon zonder
+    // (zie require_employee_role in migratie 00007), dus hier vangen we dat
+    // netjes af in plaats van met een technische foutmelding.
+    const employeeId = employeeIdOverride ?? activeEmployee?.id
+    if (!employeeId) {
+      setShowLogin(true)
+      return
+    }
+
     // Pin/QR gaan via de PaymentProvider-adapter (doc 04): pas bij "geslaagd"
     // wordt de bon geboekt en de voorraad afgeboekt. Contant heeft geen
     // terminal, dat blijft een directe boeking na het invoeren van het
     // ontvangen bedrag.
     if (method !== 'cash') {
-      const provider = getPaymentProvider({ terminalId: activeRegister.terminal_id, registerId: activeRegister.id })
+      const provider = getPaymentProvider({
+        hasTerminal: Boolean(activeRegister.terminal_id),
+        registerId: activeRegister.id,
+        employeeId,
+      })
       try {
         const { paymentId } = await provider.startPayment({
           amountCents: amountDue,
@@ -133,7 +146,7 @@ export function PosPage() {
         receivedCents,
         creditCents,
         creditRefId: credit?.refundId ?? null,
-        employeeId: employeeIdOverride ?? activeEmployee?.id ?? null,
+        employeeId,
       },
       {
         onSuccess: ({ receipt_number }) => {

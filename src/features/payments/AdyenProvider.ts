@@ -15,12 +15,17 @@ export class AdyenProvider implements PaymentProvider {
   // ServiceID moet uniek zijn binnen 48 uur en mag maximaal 10 tekens zijn.
   // We onthouden per betaling welke ServiceID gebruikt is, omdat een
   // statusopvraging naar díe ServiceID moet verwijzen.
-  private serviceIdByPayment = new Map<string, { serviceId: string; poiId: string }>()
+  private serviceIdByPayment = new Map<string, { serviceId: string }>()
 
-  private readonly saleId: string
+  private readonly registerId: string
+  private readonly employeeId: string
 
-  constructor(saleId: string) {
-    this.saleId = saleId
+  // De server leidt het terminal-ID en SaleID zelf af uit registerId; die
+  // worden bewust niet vanuit de client meegestuurd, zodat niemand een
+  // willekeurige andere terminal kan aansturen.
+  constructor(registerId: string, employeeId: string) {
+    this.registerId = registerId
+    this.employeeId = employeeId
   }
 
   private newServiceId(): string {
@@ -28,7 +33,9 @@ export class AdyenProvider implements PaymentProvider {
   }
 
   private async call(body: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const { data, error } = await supabase.functions.invoke('adyen-terminal', { body })
+    const { data, error } = await supabase.functions.invoke('adyen-terminal', {
+      body: { ...body, registerId: this.registerId, employeeId: this.employeeId },
+    })
     if (error) throw new Error(`Terminal onbereikbaar: ${error.message}`)
     return data as Record<string, unknown>
   }
@@ -39,15 +46,12 @@ export class AdyenProvider implements PaymentProvider {
 
     const response = await this.call({
       action: 'payment',
-      poiId: input.terminalId,
-      saleId: this.saleId,
       serviceId,
       amountCents: input.amountCents,
-      currency: 'EUR',
       reference: input.reference,
     })
 
-    this.serviceIdByPayment.set(paymentId, { serviceId, poiId: input.terminalId })
+    this.serviceIdByPayment.set(paymentId, { serviceId })
 
     // De /sync-endpoint wacht op de klant; meestal is het resultaat hier al
     // bekend. Zo niet, dan haalt getStatus() het later alsnog op.
@@ -70,8 +74,6 @@ export class AdyenProvider implements PaymentProvider {
 
     const response = await this.call({
       action: 'status',
-      poiId: context.poiId,
-      saleId: this.saleId,
       serviceId: this.newServiceId(),
       originalServiceId: context.serviceId,
     })
@@ -87,8 +89,6 @@ export class AdyenProvider implements PaymentProvider {
 
     await this.call({
       action: 'abort',
-      poiId: context.poiId,
-      saleId: this.saleId,
       serviceId: this.newServiceId(),
       originalServiceId: context.serviceId,
     })
@@ -97,11 +97,8 @@ export class AdyenProvider implements PaymentProvider {
   async refund(input: RefundInput): Promise<{ refundId: string }> {
     const response = await this.call({
       action: 'refund',
-      poiId: input.terminalId,
-      saleId: this.saleId,
       serviceId: this.newServiceId(),
       amountCents: input.amountCents,
-      currency: 'EUR',
       reference: input.reference,
     })
 

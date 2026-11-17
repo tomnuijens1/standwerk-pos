@@ -43,10 +43,14 @@ jobs:
       - name: Installeer afhankelijkheden
         run: npm ci
 
+      # Deze twee waarden zijn bedoeld om publiek te zijn (ze staan sowieso in
+      # de uitgeleverde app), maar horen hier niet hardcoded: via repository
+      # variables kun je ze wijzigen zonder de code aan te passen, en is
+      # meteen duidelijk waar ze beheerd worden.
       - name: Bouw de website
         env:
-          VITE_SUPABASE_URL: https://obftxhkuxtxphuihgyus.supabase.co
-          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_lK787MMlq3nJHq3FOwEXkQ_bv186xaA
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
         run: npm run build
 
       - name: Synchroniseer web-assets naar het Android-project

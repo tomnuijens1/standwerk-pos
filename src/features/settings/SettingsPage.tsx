@@ -3,6 +3,7 @@ import { useCurrentEvent } from '../../app/EventGate'
 import { cents, formatEuro, parseEuroInputToCents } from '../../shared/money/money'
 import { useCategories, useRegisters } from '../../shared/supabase/useEvent'
 import { useCreateEmployee, useDeactivateEmployee, useEmployees } from '../employees/api/employees'
+import { useActiveEmployee } from '../employees/useActiveEmployee'
 import { useCreateRegister, useUpdateCategoryVat, useUpdateEvent, useUpdateRegisterTerminal } from './api/settings'
 import { useSettings } from './useSettings'
 import './settings.css'
@@ -13,6 +14,10 @@ export function SettingsPage() {
   const { data: categories = [] } = useCategories(event.id)
   const { data: employees = [] } = useEmployees(event.id)
   const { activeRegisterId, setActiveRegisterId } = useSettings()
+  const { employee: activeEmployee } = useActiveEmployee()
+  // Deze pagina zit achter RequireManager, dus er is altijd een manager
+  // ingelogd; de server controleert dit nogmaals bij elke wijziging.
+  const employeeId = activeEmployee?.id ?? ''
 
   const updateEvent = useUpdateEvent()
   const createRegister = useCreateRegister(event.id)
@@ -35,7 +40,7 @@ export function SettingsPage() {
 
       <label>
         Eventnaam
-        <input defaultValue={event.name} onBlur={(e) => updateEvent.mutate({ id: event.id, name: e.target.value })} />
+        <input defaultValue={event.name} onBlur={(e) => updateEvent.mutate({ id: event.id, employeeId, name: e.target.value })} />
       </label>
 
       <label>
@@ -62,7 +67,7 @@ export function SettingsPage() {
               defaultValue={r.terminal_id ?? ''}
               placeholder="bijv. S1F2-000158225400001"
               onBlur={(e) =>
-                updateRegisterTerminal.mutate({ registerId: r.id, terminalId: e.target.value.trim() || null })
+                updateRegisterTerminal.mutate({ registerId: r.id, terminalId: e.target.value.trim() || null, employeeId })
               }
             />
           </label>
@@ -83,7 +88,7 @@ export function SettingsPage() {
           disabled={!newRegisterName || !newRegisterCode}
           onClick={() => {
             createRegister.mutate(
-              { name: newRegisterName, code: newRegisterCode },
+              { name: newRegisterName, code: newRegisterCode, employeeId },
               { onSuccess: () => { setNewRegisterName(''); setNewRegisterCode('') } },
             )
           }}
@@ -100,7 +105,7 @@ export function SettingsPage() {
             <input
               type="number"
               defaultValue={c.default_vat_rate_bp / 100}
-              onBlur={(e) => updateCategoryVat.mutate({ id: c.id, vatRateBp: Math.round(Number(e.target.value) * 100) })}
+              onBlur={(e) => updateCategoryVat.mutate({ id: c.id, vatRateBp: Math.round(Number(e.target.value) * 100), employeeId })}
             />
           </label>
         ))}
@@ -118,7 +123,7 @@ export function SettingsPage() {
             {emp.active && (
               <button
                 onClick={() => {
-                  if (window.confirm(`${emp.name} deactiveren?`)) deactivateEmployee.mutate(emp.id)
+                  if (window.confirm(`${emp.name} deactiveren?`)) deactivateEmployee.mutate({ employeeId: emp.id, actingEmployeeId: employeeId })
                 }}
               >
                 Deactiveren
@@ -153,7 +158,7 @@ export function SettingsPage() {
           onClick={() => {
             setEmployeeError(null)
             createEmployee.mutate(
-              { name: newEmployeeName, pincode: newEmployeePincode, role: newEmployeeRole },
+              { name: newEmployeeName, pincode: newEmployeePincode, role: newEmployeeRole, actingEmployeeId: employeeId },
               {
                 onSuccess: () => {
                   setNewEmployeeName('')
@@ -174,7 +179,7 @@ export function SettingsPage() {
         <input
           type="number"
           defaultValue={event.max_discount_percent_without_manager}
-          onBlur={(e) => updateEvent.mutate({ id: event.id, max_discount_percent_without_manager: Number(e.target.value) })}
+          onBlur={(e) => updateEvent.mutate({ id: event.id, employeeId, max_discount_percent_without_manager: Number(e.target.value) })}
         />
       </label>
 
@@ -183,7 +188,7 @@ export function SettingsPage() {
         <input
           type="number"
           defaultValue={event.low_stock_default}
-          onBlur={(e) => updateEvent.mutate({ id: event.id, low_stock_default: Number(e.target.value) })}
+          onBlur={(e) => updateEvent.mutate({ id: event.id, employeeId, low_stock_default: Number(e.target.value) })}
         />
       </label>
 
@@ -193,7 +198,7 @@ export function SettingsPage() {
           defaultValue={formatEuro(cents(event.opening_float_cents))}
           onBlur={(e) => {
             try {
-              updateEvent.mutate({ id: event.id, opening_float_cents: parseEuroInputToCents(e.target.value) })
+              updateEvent.mutate({ id: event.id, employeeId, opening_float_cents: parseEuroInputToCents(e.target.value) })
             } catch {
               e.target.value = formatEuro(cents(event.opening_float_cents))
             }
@@ -206,7 +211,7 @@ export function SettingsPage() {
         <input
           type="number"
           defaultValue={event.return_days}
-          onBlur={(e) => updateEvent.mutate({ id: event.id, return_days: Number(e.target.value) })}
+          onBlur={(e) => updateEvent.mutate({ id: event.id, employeeId, return_days: Number(e.target.value) })}
         />
       </label>
     </div>
